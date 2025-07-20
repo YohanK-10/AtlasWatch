@@ -3,6 +3,7 @@ package com.atlasmind.ai_travel_recommendation.config;
 import com.atlasmind.ai_travel_recommendation.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -27,14 +28,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization"); // This contains the JWT Token
-        final String jwtToken;
+          // Cross site requests don't include headers, you control when to send tokens. You have to manually add the headers,
+        // so the attacker will have to have access to this info as the browser won't send the info by default.
+        // Attacker does not need access to the cookies, browser sends it for them.
+        // But with cookies, browser sends them automatically with every request, including malicious ones. So CSRF tokens are necessary.
+       // Cookie: jwt=abc.def.ghi; theme=dark; session_id=xyz (name=value)
+        Cookie[] cookies = request.getCookies();
+        String jwtToken = null;
         final String theUserName;
-        if(authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (cookies != null) {
+            for (Cookie cooks : cookies) {
+                if (cooks.getName().equals("jwt")) jwtToken = cooks.getValue();
+                break;
+            }
+        }
+        if (jwtToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        jwtToken = authHeader.substring(7); //Everything from the 8th character.
         try {
             theUserName = jwtService.extractUsername(jwtToken);
             if (theUserName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
