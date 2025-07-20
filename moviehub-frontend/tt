@@ -1,0 +1,64 @@
+"use client"
+import {useEffect, useState} from "react";
+
+
+export default function loginPage() {
+    const posters = [
+        {
+            title: "Interstellar",
+            subtitle: "Christopher Nolan · 2014",
+            src: "/posters/interstellar.jpg",
+        },
+        {
+            title: "Dune: Part Two",
+            subtitle: "Denis Villeneuve · 2024",
+            src: "/posters/Dune.jpeg",
+        },
+        {
+            title: "Oppenheimer",
+            subtitle: "Christopher Nolan · 2023",
+            src: "/posters/oppenheimer.jpg",
+        },
+        {
+            title: "The Worst Person in the World",
+            subtitle: "Joachim Trier · 2022",
+            src: "/posters/worst.jpg",
+        },// Trailing commas, helps to add stuff without touching this line of code later on.
+    ]
+    const[currentPosterIndex, setPosterIndex] = useState(0);// 0 here initializes currentPosterIndex
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPosterIndex((prevIndex) =>
+                (prevIndex + 1) % posters.length);
+        }, 4000)
+        return () => clearInterval(interval)
+    }, []);
+
+    return (
+        <div className="flex min-h-screen">
+            {/* Left Panel - Login Form */}
+            <div className="w-full md:w-[55%] bg-black text-white">
+                <h1 className="text-2xl font-bold p-8">Log In</h1>
+                {/* Login Form */}
+            </div>
+
+            {/* Right Panel - Poster Carousel */}
+            <div className="hidden md:block w-[45%] relative bg-gradient-to-br from-zinc-800 to-zinc-600">
+                <div className={`${posters[currentPosterIndex].title.includes("The Worst Person in the World") ? "aspect-[5/6]" : "aspect-[2/3]"} w-full h-full relative`}>
+                    {/* Background image */}
+                    {posters.map((poster, index) => (
+                        <img
+                            key={index} // index is fine for static pages but not for dynamic pages. Passed to react, don't confuse it for a variable to reuse.
+                            src={poster.src}
+                            // alt={poster.title + " " + poster.subtitle}
+                            className={`absolute inset-0 w-full h-full transition-opacity duration-1000
+                    ${index === currentPosterIndex ? "opacity-100" : "opacity-0"}
+                    object-cover object-center`}
+                        />
+                    ))}
+                    <div className="absolute inset-0 bg-black/15"> </div> {/*allows the shorter version when there’s nothing inside the element. This black overlay helps the white text pop out more. To make UI's more readable.*/}
+                </div>
+            </div>
+        </div>
+    );
+}
