@@ -54,11 +54,13 @@ export default function register() {
         try {
             const passwordError = checkPassword(formData.password);
             const confirmError = validateConfirmPassword(formData.password, formDataCp.confirmPassword);
+            const emailErr = validateEmail(formData.email)
 
             setPasswordError(passwordError);
             setConfirmPasswordError(confirmError);
+            setEmailError(emailErr)
 
-            if (passwordError || confirmError) {
+            if (passwordError || confirmError || emailErr) {
                 return; // Prevent submission if errors exist
             }
 
@@ -72,13 +74,17 @@ export default function register() {
             if (res.ok) {
                 router.push("/verifyPage");
             } else {
-                setError("Invalid login credentials");
+                setError("Invalid credentials");
             }
         } catch (err) {
             setError("Network error");
         }
     };
 
+    const isFormComplete = () => {
+        return formData.username.trim() !== '' && formData.email.trim() !== '' &&
+        formData.password.trim() !== '' && formDataCp.confirmPassword.trim() !== '';
+    }
 
     useEffect(() => {
         const confirmErr = validateConfirmPassword(formData.password, formDataCp.confirmPassword);
@@ -109,7 +115,7 @@ export default function register() {
 
     const validateEmail = (emailAddress: string): string => {
         if (!emailAddress) return ""
-        if (!emailAddress.includes("@gmail.com")) return "Invalid email address. Missing '@gmail.com'!!"
+        if (!emailAddress.includes("@gmail.com")) return "Invalid email address. Missing @gmail.com."
         else return "";
     }
 
@@ -205,7 +211,7 @@ export default function register() {
                                             <input
                                                 className={`flex h-13 w-full rounded-lg border border-gray-500 bg-transparent pl-10 pr-10 py-2 text-base transition-all duration-200 ease-in-out
                                                            ${emailError.length > 0 ? "focus:outline-none border-red-500 focus:border-red-500 border-3" : "focus:border-transparent focus:outline-[3.5px] " +
-                                                    "focus:outline-offset-0 focus:transition-none hover:border-gray-300 focus:outline-white"}`}
+                                                           "focus:outline-offset-0 focus:transition-none hover:border-gray-300 focus:outline-white"}`}
                                                 id="email"
                                                 type="text"
                                                 placeholder="E-mail"
@@ -217,8 +223,7 @@ export default function register() {
                                                     const v = e.target.value
                                                     setFormData({...formData, email: v})
                                                     if (v.length == 0) setEmailError(validateEmail(v))
-                                                    // setEmailError(validateEmail(v))
-                                                }} // copy content from the formData object and change the value of loginInfo. ... is the spread operator.
+                                                }}
                                                 onBlur={() => {
                                                     setEmailError(validateEmail(formData.email))
                                                 }}
@@ -301,7 +306,7 @@ export default function register() {
                                             </button>
                                         </div>
 
-                                        {passwordError.length > 0 && (
+                                        {passwordError && (
                                             <p className="text-red-500 text-sm mt-2 pl-2.5">{passwordError}</p>
                                         )}
                                     </div>
@@ -359,13 +364,13 @@ export default function register() {
                                                 onClick={() => setVisibleCp((prev) => !prev)}
                                             >
                                                 {visibleCp ? (
-                                                    // Eye open icon - complete eye shape
+                                                    // Eye open icon
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z" />
                                                     </svg>
                                                 ) : (
-                                                    // Eye closed icon - same eye shape with added slash
+                                                    // Eye closed icon
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z" />
@@ -376,7 +381,7 @@ export default function register() {
                                         </div>
 
                                         {confirmPasswordError && (
-                                            <p className="text-red-500 text-sm mt-2 pl-2.5">{confirmPasswordError}.</p>
+                                            <p className="text-red-500 text-sm mt-2 pl-2.5">{confirmPasswordError}</p>
                                         )}
                                     </div>
                                 </div>
@@ -384,6 +389,7 @@ export default function register() {
 
                             <button
                                 type="submit"
+                                disabled={!isFormComplete}
                                 className="mt-10 text-black bg-white hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-base w-full py-3.5 text-center transition-colors">
                                 Register
                             </button>
@@ -397,7 +403,7 @@ export default function register() {
                                 </div>
                                 <div className="pl-3 mt-4 flex justify-between items-center mb-2">
                                     <a
-                                        className="text-md text-gray-300 hover:text-gray-50 transition-colors"
+                                        className="text-md text-gray-300 hover:text-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2"
                                         href="/login"
                                     >
                                         Log in.

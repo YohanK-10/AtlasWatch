@@ -42,6 +42,13 @@ export default function loginPage() {
         return () => clearInterval(interval)
     }, []);
 
+    useEffect(() => {
+        setError('')
+    }, [formData.loginInfo, formData.password]);
+
+    const isFormComplete = () => {
+        return formData.password.trim() !== '' && formData.loginInfo.trim() !== '';
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault() // prevents page reload when form is submitted
@@ -59,7 +66,7 @@ export default function loginPage() {
             if (res.ok) {
                 router.push("/homepage");
             } else {
-                setError("Invalid login credentials");
+                setError("Invalid login credentials. The username and password you entered is not valid.");
             }
         } catch (err) {
             setError("Network error");
@@ -129,7 +136,9 @@ export default function loginPage() {
                                             autoComplete="email"
                                             autoCorrect="off"
                                             value={formData.loginInfo}
-                                            onChange={(e)=> setFormData({...formData, loginInfo: e.target.value})} // copy content from the formData object and change the value of loginInfo. ... is the spread operator.
+                                            onChange={(e)=> {
+                                                setFormData({...formData, loginInfo: e.target.value}) // copy content from the formData object and change the value of loginInfo. ... is the spread operator.
+                                            }}
                                             required
                                         />
                                     </div>
@@ -174,7 +183,7 @@ export default function loginPage() {
                                         {/* Password visibility toggle */}
                                         <button
                                             type="button"
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2"
                                             onClick={() => setVisible((prev) => !prev)}
                                         >
                                             {visible ? (
@@ -193,10 +202,13 @@ export default function loginPage() {
                                             )}
                                         </button>
                                     </div>
+                                    <div className="mt-3 mb-1">
+                                        {error && <p className="text-red-500">{error}</p>}
+                                    </div>
                                     <div className="flex flex-row">
                                         <div className="mt-4 flex justify-between items-center mb-2">
                                             <a
-                                                className="text-md text-gray-400 hover:text-gray-200 transition-colors"
+                                                className="text-md text-gray-400 hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2"
                                                 href="/password-reset"
                                             >
                                                 Forgot password?
@@ -204,7 +216,7 @@ export default function loginPage() {
                                         </div>
                                         <div className="pl-38 mt-4 flex justify-between items-center mb-2">
                                             <a
-                                                className="text-md text-gray-300 hover:text-gray-50 transition-colors"
+                                                className="text-md text-gray-300 hover:text-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2"
                                                 href="/register"
                                             >
                                                 Create an account.
@@ -216,10 +228,11 @@ export default function loginPage() {
 
                             <button
                                 type="submit"
+                                disabled={!isFormComplete}
                                 className="text-black bg-white hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-base w-full py-3.5 text-center transition-colors">
                                 Log In
                             </button>
-                            {error && <p className="text-red-500">{error}</p>}
+
                         </form>
                     </div>
                 </div>
