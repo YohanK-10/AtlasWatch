@@ -1,6 +1,8 @@
 package com.atlasmind.ai_travel_recommendation.config;
 
 import com.atlasmind.ai_travel_recommendation.service.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -38,8 +40,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String theUserName;
         if (cookies != null) {
             for (Cookie cooks : cookies) {
-                if (cooks.getName().equals("jwt")) jwtToken = cooks.getValue();
-                break;
+                if (cooks.getName().equals("jwt")) {
+                    jwtToken = cooks.getValue();
+                    break;
+                }
             }
         }
         if (jwtToken == null) {
@@ -63,6 +67,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid encryption Algorithm");
         } catch (InvalidKeySpecException e) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid key specification");
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token expired");
+        } catch (JwtException | IllegalArgumentException ex) {
+            // other JWT errors: malformed, unsupported, etc.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid token");
         }
     }
 }

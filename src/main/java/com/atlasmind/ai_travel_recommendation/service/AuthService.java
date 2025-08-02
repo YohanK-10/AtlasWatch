@@ -149,8 +149,8 @@ public class AuthService {
      * @return
      */
     private String generateVerificationCode() {
-        byte[] randomnBytes = new byte[32]; // Creates the array
-        new SecureRandom().nextBytes(randomnBytes); // Cryptographically strong bytes.
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomnBytes);
+        byte[] randomBytes = new byte[32]; // Creates the array
+        new SecureRandom().nextBytes(randomBytes); // Cryptographically strong bytes.
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
     }
 }
