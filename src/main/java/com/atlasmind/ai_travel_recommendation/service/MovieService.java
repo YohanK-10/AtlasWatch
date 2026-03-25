@@ -1,5 +1,6 @@
 package com.atlasmind.ai_travel_recommendation.service;
 
+import com.atlasmind.ai_travel_recommendation.dto.response.MovieResponseDto;
 import com.atlasmind.ai_travel_recommendation.dto.tmdb.MovieDetailDto;
 import com.atlasmind.ai_travel_recommendation.dto.tmdb.MovieDto;
 import com.atlasmind.ai_travel_recommendation.dto.tmdb.SearchResponseDto;
@@ -9,15 +10,17 @@ import com.atlasmind.ai_travel_recommendation.models.MovieGenre;
 import com.atlasmind.ai_travel_recommendation.repository.GenreRepository;
 import com.atlasmind.ai_travel_recommendation.repository.MovieGenreRepository;
 import com.atlasmind.ai_travel_recommendation.repository.MovieRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -103,6 +106,7 @@ public class MovieService {
      * Get trending movies. Calls TMDB and persists results.
      * In Issue #9, this will be cached in Redis with a 10-min TTL.
      */
+    @Cacheable(value = "trending", key = "'daily'")
     @Transactional
     public SearchResponseDto getTrendingMovies() {
         SearchResponseDto response = tmdbApiService.getTrendingMovies();
@@ -229,5 +233,38 @@ public class MovieService {
             log.warn("Could not parse date: '{}'", dateStr);
             return null;
         }
+    }
+
+    // ─── CACHED MOVIE DETAILS (returns DTO, used by controller) ───
+
+    /**
+     * Get movie details as a response DTO, cached in Redis.
+     *
+     * WHY cache the DTO and not the Movie entity?
+     * 1. The Movie entity has lazy-loaded JPA relationships — they break
+     *    when deserialized from Redis (no Hibernate session attached)
+     * 2. Caching the DTO means genres are included — one Redis lookup
+     *    replaces both the DB query AND the genre join table query
+     * 3. The DTO is exactly what the API returns, so Redis stores
+     *    the "finished product" ready to serve
+     *
+     * The key is the tmdbId — each movie gets its own cache entry.
+     * Spring builds the Redis key as: "movieDetails::27205"
+     */
+    @Cacheable(value = "movieDetails", key = "#tmdbId")
+    @Transactional(readOnly = true)
+    public MovieResponseDto getMovieDetailsDto(Integer tmdbId) {
+        Movie movie = getMovieByTmdbId(tmdbId);
+
+        if (movie == null) {
+            return null;
+        }
+
+        List<String> genreNames = movieGenreRepository.findByMovieId(movie.getId())
+                .stream()
+                .map(mg -> mg.getGenre().getName())
+                .toList();
+
+        return MovieResponseDto.fromMovie(movie, genreNames);
     }
 }

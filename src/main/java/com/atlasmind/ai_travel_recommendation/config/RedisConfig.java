@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.time.Duration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +13,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableCaching
@@ -26,13 +29,24 @@ public class RedisConfig {
                                            ObjectMapper.DefaultTyping.NON_FINAL,
                                            JsonTypeInfo.As.PROPERTY);
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
-        RedisCacheConfiguration cacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(30))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
                 .disableCachingNullValues();
+
+        Map<String, RedisCacheConfiguration> cacheConfiguration = new HashMap<>();
+        // Trending movies: updated frequently by TMDB, short TTL
+        cacheConfiguration.put("trending",
+                defaultConfig.entryTtl(Duration.ofMinutes(10)));
+
+        // Movie details: rarely change, longer TTL
+        cacheConfiguration.put("movieDetails",
+                defaultConfig.entryTtl(Duration.ofHours(1)));
+
         return RedisCacheManager.builder(redisConnectionFactory)
-                .cacheDefaults(cacheConfiguration)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfiguration)
                 .build();
     }
 }

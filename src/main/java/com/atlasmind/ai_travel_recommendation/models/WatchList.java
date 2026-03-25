@@ -1,11 +1,12 @@
 package com.atlasmind.ai_travel_recommendation.models;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -39,4 +40,9 @@ public class WatchList {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime addedAt;
+
+    @PrePersist
+    protected void onAdding() {
+        this.addedAt = LocalDateTime.now();
+    }
 }

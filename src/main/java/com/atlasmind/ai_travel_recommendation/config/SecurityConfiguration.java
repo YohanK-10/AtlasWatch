@@ -1,6 +1,5 @@
 package com.atlasmind.ai_travel_recommendation.config;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +13,8 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -30,11 +31,13 @@ public class SecurityConfiguration {
                 .cors(withDefaults()) // enables cors in spring when using spring security.
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/auth/login", "/auth/register", "/auth/verify",
-                                                 "/auth/resend")
+                                                 "/auth/resend", "/api/test/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/api/movies/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sm -> sm

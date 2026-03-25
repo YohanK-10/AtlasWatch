@@ -9,6 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class RegisterUserDto {
     private String email;
-    private String password;
+    private String password; //Ilovemyself69$
     private String username;
 }
