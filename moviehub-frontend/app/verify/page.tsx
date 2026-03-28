@@ -139,7 +139,7 @@ export default function Verify() { // 🔑 keep the name Pascal-cased
                 </button>
 
                 <div className="text-center text-sm">
-                    <span className="text-gray-400">Didn't receive the code?</span>
+                    <span className="text-gray-400">Didn&apos;t receive the code?</span>
                     <button
                         type="button"
                         onClick={handleResend}

@@ -2,7 +2,7 @@
 import React, {useEffect, useState} from "react";
 import { useRouter } from 'next/navigation';
 
-export default function loginPage() {
+export default function LoginPage() {
     const posters = [
         {
             title: "Interstellar",
@@ -73,7 +73,7 @@ export default function loginPage() {
         }
     }
 
-    function getCookie(nameCookie: String): string | undefined { // returns a cookie string, or undefined if no cookie is present.
+    function getCookie(nameCookie: string): string | undefined { // returns a cookie string, or undefined if no cookie is present.
         return document.cookie
             .split("; ")
             .find(row => row.startsWith(nameCookie + "="))

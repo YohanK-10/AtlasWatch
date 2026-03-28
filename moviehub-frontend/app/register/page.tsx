@@ -3,7 +3,7 @@
 import React, {useEffect, useState} from "react";
 import {useRouter} from "next/navigation";
 
-export default function register() {
+export default function Register() {
     const posters = [
         {
             title: "Interstellar",
@@ -119,7 +119,7 @@ export default function register() {
         else return "";
     }
 
-    function getCookie (name: String): string | undefined {
+    function getCookie (name: string): string | undefined {
         return document.cookie
             .split(";")
             .find(row => row.startsWith(name + "="))
