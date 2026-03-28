@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { posterUrl } from "@/lib/types";
 
@@ -14,6 +15,11 @@ interface Props {
 export default function MovieCard({ tmdbId, title, posterPath, rating, releaseDate }: Props) {
   const router = useRouter();
   const year = releaseDate?.split("-")[0];
+  const [imageSrc, setImageSrc] = useState(() => posterUrl(posterPath, "w342"));
+
+  useEffect(() => {
+    setImageSrc(posterUrl(posterPath, "w342"));
+  }, [posterPath]);
 
   return (
     <button
@@ -21,18 +27,13 @@ export default function MovieCard({ tmdbId, title, posterPath, rating, releaseDa
       className="group text-left w-full"
     >
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
-        {posterPath ? (
-          <img
-            src={posterUrl(posterPath, "w342")}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm px-2 text-center">
-            {title}
-          </div>
-        )}
+        <img
+          src={imageSrc}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+          onError={() => setImageSrc("/posters/placeholder.svg")}
+        />
 
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">

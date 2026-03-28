@@ -38,12 +38,11 @@ export default function MovieDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getMovieDetails(id), getReviewsByMovie(id)])
-      .then(([m, r]) => {
-        setMovie(m);
-        setReviews(r);
+    Promise.allSettled([getMovieDetails(id), getReviewsByMovie(id)])
+      .then(([movieResult, reviewsResult]) => {
+        setMovie(movieResult.status === "fulfilled" ? movieResult.value : null);
+        setReviews(reviewsResult.status === "fulfilled" ? reviewsResult.value : []);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 
