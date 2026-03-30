@@ -2,6 +2,10 @@ package com.atlasmind.ai_travel_recommendation.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -29,6 +33,12 @@ public class JwtService {
 
     @Value("${security.jwt.privateKey:}")
     private String privateKeyValue;
+
+    @Value("${security.jwt.publicKeyPath:}")
+    private String publicKeyPath;
+
+    @Value("${security.jwt.privateKeyPath:}")
+    private String privateKeyPath;
 
     public Long getExpirationTime() {
         return expirationTime;
@@ -84,7 +94,7 @@ public class JwtService {
     }
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String publicKey = normalizeKey(publicKeyValue, "PUBLIC_KEY");
+        String publicKey = resolveKeyMaterial(publicKeyValue, "PUBLIC_KEY");
         byte[] keyBytes = Base64.getDecoder().decode(publicKey);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes); // encoding of a public key
         KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -92,16 +102,53 @@ public class JwtService {
     }
 
     private PrivateKey getPrivateKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String privateKey = normalizeKey(privateKeyValue, "PRIVATE_KEY");
+        String privateKey = resolveKeyMaterial(privateKeyValue, "PRIVATE_KEY");
         byte[] keyBytes = Base64.getDecoder().decode(privateKey);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
     }
 
+    private String resolveKeyMaterial(String rawKey, String keyName) {
+        String normalizedKey = normalizeKey(rawKey);
+        if (StringUtils.hasText(normalizedKey)) {
+            return normalizedKey;
+        }
+
+        String fileBasedKey = readKeyFromConfiguredPath(keyName);
+        String normalizedFileKey = normalizeKey(fileBasedKey);
+        if (StringUtils.hasText(normalizedFileKey)) {
+            return normalizedFileKey;
+        }
+
+        String dotenvKey = readMultilineKeyFromDotenv(keyName);
+        String normalizedDotenvKey = normalizeKey(dotenvKey);
+        if (StringUtils.hasText(normalizedDotenvKey)) {
+            return normalizedDotenvKey;
+        }
+
+        throw new IllegalStateException(
+                "Missing or invalid JWT key configuration: " + keyName +
+                        ". Provide a key value, point to a PEM file, or keep a quoted multiline PEM block in .env."
+        );
+    }
+
     private String normalizeKey(String rawKey, String keyName) {
         if (!StringUtils.hasText(rawKey)) {
             throw new IllegalStateException("Missing JWT key configuration: " + keyName);
+        }
+
+        String normalizedKey = normalizeKey(rawKey);
+        if (!StringUtils.hasText(normalizedKey)) {
+            throw new IllegalStateException("Missing JWT key configuration: " + keyName);
+        }
+
+        return normalizedKey;
+    }
+
+    private String normalizeKey(String rawKey) {
+        if (!StringUtils.hasText(rawKey)) {
+            return "";
         }
 
         String normalizedKey = rawKey.trim();
@@ -116,5 +163,60 @@ public class JwtService {
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replaceAll("\\s", "");
+    }
+
+    private String readMultilineKeyFromDotenv(String keyName) {
+        Path dotenvPath = Paths.get(".env");
+        if (!Files.exists(dotenvPath)) {
+            return "";
+        }
+
+        try {
+            String fileContents = Files.readString(dotenvPath);
+            String keyPrefix = keyName + "=\"";
+            int start = fileContents.indexOf(keyPrefix);
+            if (start < 0) {
+                return "";
+            }
+
+            int valueStart = start + keyPrefix.length();
+            int valueEnd = fileContents.indexOf("\"", valueStart);
+            if (valueEnd < 0) {
+                return "";
+            }
+
+            return fileContents.substring(valueStart, valueEnd);
+        } catch (IOException ex) {
+            return "";
+        }
+    }
+
+    private String readKeyFromConfiguredPath(String keyName) {
+        String configuredPath = "PUBLIC_KEY".equals(keyName) ? publicKeyPath : privateKeyPath;
+
+        String keyFromConfiguredPath = readKeyFile(configuredPath);
+        if (StringUtils.hasText(keyFromConfiguredPath)) {
+            return keyFromConfiguredPath;
+        }
+
+        String defaultPath = "PUBLIC_KEY".equals(keyName) ? "jwt-public.pem" : "jwt-private.pem";
+        return readKeyFile(defaultPath);
+    }
+
+    private String readKeyFile(String keyPath) {
+        if (!StringUtils.hasText(keyPath)) {
+            return "";
+        }
+
+        try {
+            Path path = Paths.get(keyPath.trim());
+            if (!Files.exists(path)) {
+                return "";
+            }
+
+            return Files.readString(path);
+        } catch (IOException ex) {
+            return "";
+        }
     }
 }

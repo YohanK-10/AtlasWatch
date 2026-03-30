@@ -26,11 +26,16 @@ public class ReviewResponseDto {
     private final String username;
     private final Integer rating;
     private final String reviewText;
+    private final Boolean hasReviewText;
     private final Boolean containsSpoilers;
+    private final Boolean edited;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public static ReviewResponseDto fromReview(Review review) {
+        boolean hasReviewText = review.getReviewText() != null && !review.getReviewText().trim().isEmpty();
+        boolean edited = review.getUpdatedAt() != null && !review.getUpdatedAt().isEqual(review.getCreatedAt());
+
         return ReviewResponseDto.builder()
                 .id(review.getId())
                 .tmdbId(review.getMovie().getTmdbId())
@@ -38,7 +43,9 @@ public class ReviewResponseDto {
                 .username(review.getUser().getUsername())
                 .rating(review.getRating())
                 .reviewText(review.getReviewText())
+                .hasReviewText(hasReviewText)
                 .containsSpoilers(review.getContainsSpoilers())
+                .edited(edited)
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();

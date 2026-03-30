@@ -42,4 +42,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r FROM Review r JOIN FETCH r.user JOIN FETCH r.movie WHERE r.id = :reviewId")
     Optional<Review> findByIdWithDetails(@Param("reviewId") Long reviewId);
 
+    @Query("SELECT r FROM Review r JOIN FETCH r.user JOIN FETCH r.movie WHERE r.user.id = :userId AND r.movie.id = :movieId")
+    Optional<Review> findByUserIdAndMovieIdWithDetails(@Param("userId") Long userId, @Param("movieId") Long movieId);
+
 }

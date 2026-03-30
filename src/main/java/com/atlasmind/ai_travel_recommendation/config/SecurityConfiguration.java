@@ -35,6 +35,7 @@ public class SecurityConfiguration {
                                 "/auth/resend", "/auth/logout", "/auth/refresh",
                                 "/auth/password-reset/**",
                                 "/api/test/**", "/api/reviews/**",
+                                "/api/recommendations/**",
                                 "/api/watchlist/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
