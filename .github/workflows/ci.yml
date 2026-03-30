@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+#    branches: ["main"]
   pull_request:
 
 jobs:
@@ -13,9 +13,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: jfgjksfgnj
-          POSTGRES_USER: dskjsdkfbdsk
-          POSTGRES_PASSWORD: kdbsjhdsgb
+          POSTGRES_DB: atlaswatch_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -36,14 +36,14 @@ jobs:
 
     env:
       SPRING_DATABASE_URL: jdbc:postgresql://localhost:5432/atlaswatch_ci
-      SPRING_DATABASE_USERNAME: dsfuhsdiufh
-      SPRING_DATABASE_PASSWORD: jkndkfndskfnsd
+      SPRING_DATABASE_USERNAME: postgres
+      SPRING_DATABASE_PASSWORD: postgres
       REDIS_HOST: localhost
       REDIS_PORT: 6379
       MAIL_HOST: localhost
       EMAIL: ci@example.com
       EMAIL_PASSWORD: dummy
-      EXPIRATION_TIME_FOR_REFRESH_TOKEN: kdsfkds
+      EXPIRATION_TIME_FOR_REFRESH_TOKEN: 86400000
       CLIENT_ID: dummy
       CLIENT_SECRET: dummy
       TMDB_API_TOKEN: dummy
@@ -88,3 +88,8 @@ jobs:
 
       - name: Run typecheck
         run: npm exec tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080

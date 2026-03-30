@@ -1,6 +1,7 @@
 package com.atlasmind.ai_travel_recommendation.controller;
 
 import com.atlasmind.ai_travel_recommendation.dto.LoginUserDto;
+import com.atlasmind.ai_travel_recommendation.dto.PasswordResetConfirmDto;
 import com.atlasmind.ai_travel_recommendation.dto.RegisterUserDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.UserResponseDto;
 import com.atlasmind.ai_travel_recommendation.models.RefreshToken;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,5 +103,16 @@ class AuthControllerTest {
         assertNotNull(setCookieHeader);
         assertTrue(setCookieHeader.contains("SameSite=Lax"));
         assertFalse(setCookieHeader.contains("Secure"));
+    }
+
+    @Test
+    void confirmPasswordResetDelegatesToService() {
+        PasswordResetConfirmDto dto = new PasswordResetConfirmDto("alice@example.com", "123456", "StrongPass1!");
+
+        ResponseEntity<?> response = authController.confirmPasswordReset(dto);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Password reset successfully!", response.getBody());
+        verify(authService).resetPassword(dto);
     }
 }

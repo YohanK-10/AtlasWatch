@@ -1,6 +1,5 @@
 package com.atlasmind.ai_travel_recommendation.service;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.security.KeyFactory;
@@ -18,11 +17,18 @@ import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class JwtService {
     @Value("${security.jwt.expirationTime}")
     private long expirationTime;
+
+    @Value("${security.jwt.publicKey:}")
+    private String publicKeyValue;
+
+    @Value("${security.jwt.privateKey:}")
+    private String privateKeyValue;
 
     public Long getExpirationTime() {
         return expirationTime;
@@ -78,12 +84,7 @@ public class JwtService {
     }
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        Dotenv dotenv = Dotenv.load();
-        String publicKey = dotenv.get("PUBLIC_KEY");
-        publicKey = publicKey
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s", ""); // Removes spaces, newlines, tabs, etc
+        String publicKey = normalizeKey(publicKeyValue, "PUBLIC_KEY");
         byte[] keyBytes = Base64.getDecoder().decode(publicKey);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes); // encoding of a public key
         KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -91,15 +92,29 @@ public class JwtService {
     }
 
     private PrivateKey getPrivateKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        Dotenv dotenv = Dotenv.load();
-        String privateKey = dotenv.get("PRIVATE_KEY");
-//        System.out.println("PRIVATE_KEY raw: " + System.getenv("PRIVATE_KEY"));
-        privateKey = privateKey.replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s", "");
+        String privateKey = normalizeKey(privateKeyValue, "PRIVATE_KEY");
         byte[] keyBytes = Base64.getDecoder().decode(privateKey);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
+    }
+
+    private String normalizeKey(String rawKey, String keyName) {
+        if (!StringUtils.hasText(rawKey)) {
+            throw new IllegalStateException("Missing JWT key configuration: " + keyName);
+        }
+
+        String normalizedKey = rawKey.trim();
+        if (normalizedKey.startsWith("\"") && normalizedKey.endsWith("\"") && normalizedKey.length() >= 2) {
+            normalizedKey = normalizedKey.substring(1, normalizedKey.length() - 1);
+        }
+
+        return normalizedKey
+                .replace("\\n", "\n")
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
     }
 }

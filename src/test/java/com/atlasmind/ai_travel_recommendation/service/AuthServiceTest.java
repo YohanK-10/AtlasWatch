@@ -1,7 +1,9 @@
 package com.atlasmind.ai_travel_recommendation.service;
 
 import com.atlasmind.ai_travel_recommendation.dto.LoginUserDto;
+import com.atlasmind.ai_travel_recommendation.dto.PasswordResetConfirmDto;
 import com.atlasmind.ai_travel_recommendation.dto.RegisterUserDto;
+import com.atlasmind.ai_travel_recommendation.exceptions.VerificationException;
 import com.atlasmind.ai_travel_recommendation.exceptions.WeakPasswordException;
 import com.atlasmind.ai_travel_recommendation.models.User;
 import com.atlasmind.ai_travel_recommendation.repository.UserRepository;
@@ -73,5 +75,29 @@ class AuthServiceTest {
                 () -> authService.authenticate(new LoginUserDto("alice", "StrongPass1!")));
 
         verify(authenticationManager, never()).authenticate(any());
+    }
+
+    @Test
+    void requestPasswordResetStoresCodeAndEmailsUser() throws Exception {
+        User user = TestFixtures.user(1L, "alice", "user@example.com");
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        authService.requestPasswordReset("user@example.com");
+
+        assertNotNull(user.getPasswordResetCode());
+        assertNotNull(user.getExpirationTimeOfPasswordResetCode());
+        verify(emailService).sendVerificationEmail(eq("user@example.com"), anyString(), contains(user.getPasswordResetCode()));
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void resetPasswordRejectsWrongCode() {
+        User user = TestFixtures.user(1L, "alice", "user@example.com");
+        user.setPasswordResetCode("123456");
+        user.setExpirationTimeOfPasswordResetCode(java.time.LocalDateTime.now().plusMinutes(5));
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        assertThrows(VerificationException.class, () -> authService.resetPassword(
+                new PasswordResetConfirmDto("user@example.com", "999999", "StrongPass1!")));
     }
 }

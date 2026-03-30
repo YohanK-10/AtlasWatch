@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 import { logout } from "@/lib/api";
 
-const NAV_LINKS = [
+const PUBLIC_NAV_LINKS = [
   { href: "/homepage", label: "Home" },
+  { href: "/search", label: "Search" },
+];
+
+const PRIVATE_NAV_LINKS = [
   { href: "/watchlist", label: "Watchlist" },
 ];
 
@@ -15,6 +20,8 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
+  const navLinks = isAuthenticated ? [...PUBLIC_NAV_LINKS, ...PRIVATE_NAV_LINKS] : PUBLIC_NAV_LINKS;
 
   useEffect(() => {
     setQuery(searchParams.get("q") ?? "");
@@ -84,7 +91,7 @@ export default function Navbar() {
         </form>
 
         <div className="hidden items-center gap-2 md:flex">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const active = pathname === link.href;
             return (
               <button
@@ -101,9 +108,28 @@ export default function Navbar() {
               </button>
             );
           })}
-          <button type="button" onClick={handleLogout} className="btn-ghost text-sm text-slate-300">
-            Logout
-          </button>
+          {isAuthenticated ? (
+            <button type="button" onClick={handleLogout} className="btn-ghost text-sm text-slate-300">
+              Logout
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="btn-ghost text-sm text-slate-300"
+              >
+                Log In
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/register")}
+                className="btn-primary text-sm"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
 
         <button
@@ -140,7 +166,7 @@ export default function Navbar() {
           </form>
 
           <div className="space-y-2">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <button
                 key={link.href}
                 type="button"
@@ -157,13 +183,38 @@ export default function Navbar() {
                 {link.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="block w-full rounded-2xl bg-white/4 px-4 py-3 text-left text-sm font-semibold text-slate-300"
-            >
-              Logout
-            </button>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="block w-full rounded-2xl bg-white/4 px-4 py-3 text-left text-sm font-semibold text-slate-300"
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push("/login");
+                    setMobileOpen(false);
+                  }}
+                  className="block w-full rounded-2xl bg-white/4 px-4 py-3 text-left text-sm font-semibold text-slate-300"
+                >
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push("/register");
+                    setMobileOpen(false);
+                  }}
+                  className="block w-full rounded-2xl bg-amber-400/14 px-4 py-3 text-left text-sm font-semibold text-amber-100"
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

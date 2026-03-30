@@ -1,6 +1,7 @@
 package com.atlasmind.ai_travel_recommendation.service;
 
 import com.atlasmind.ai_travel_recommendation.dto.LoginUserDto;
+import com.atlasmind.ai_travel_recommendation.dto.PasswordResetConfirmDto;
 import com.atlasmind.ai_travel_recommendation.dto.RegisterUserDto;
 import com.atlasmind.ai_travel_recommendation.dto.VerifyUserDto;
 import com.atlasmind.ai_travel_recommendation.exceptions.DuplicateResourceException;
@@ -80,16 +81,21 @@ public class AuthService {
     }
 
     public void verifyUser(VerifyUserDto input) {
-        User optionalUser = userRepository.findByUsername(input.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "username", input.getUsername()));
-        if (optionalUser.getExpirationTimeOfVerificationCode().isBefore(LocalDateTime.now())) {
+        User user = userRepository.findByEmail(input.getEmail())
+                .or(() -> userRepository.findByUsername(input.getUsername()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User",
+                        input.getEmail() != null ? "email" : "username",
+                        input.getEmail() != null ? input.getEmail() : input.getUsername()
+                ));
+        if (user.getExpirationTimeOfVerificationCode().isBefore(LocalDateTime.now())) {
             throw new VerificationException("The verification code is expired!!");
         }
-        if (optionalUser.getVerificationCode().equals(input.getVerificationCode())) {
-            optionalUser.setEnable(true);
-            optionalUser.setVerificationCode(null);
-            optionalUser.setExpirationTimeOfVerificationCode(null);
-            userRepository.save(optionalUser);
+        if (user.getVerificationCode().equals(input.getVerificationCode())) {
+            user.setEnable(true);
+            user.setVerificationCode(null);
+            user.setExpirationTimeOfVerificationCode(null);
+            userRepository.save(user);
         } else {
             throw new VerificationException("Invalid verification code!!");
         }
@@ -108,6 +114,41 @@ public class AuthService {
         } else {
             throw new ResourceNotFoundException("User", "email", email);
         }
+    }
+
+    public void requestPasswordReset(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setPasswordResetCode(generateVerificationCode());
+            user.setExpirationTimeOfPasswordResetCode(LocalDateTime.now().plusMinutes(10));
+            sendPasswordResetEmail(user);
+            userRepository.save(user);
+        });
+    }
+
+    public void resetPassword(PasswordResetConfirmDto input) {
+        if (!PasswordValidator.isStrong(input.getNewPassword())) {
+            throw new WeakPasswordException("Password must be at least 8 characters long and contain uppercase, lowercase, number, and symbol.");
+        }
+
+        User user = userRepository.findByEmail(input.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", input.getEmail()));
+
+        if (user.getPasswordResetCode() == null || user.getExpirationTimeOfPasswordResetCode() == null) {
+            throw new VerificationException("No password reset request is active for this email.");
+        }
+
+        if (user.getExpirationTimeOfPasswordResetCode().isBefore(LocalDateTime.now())) {
+            throw new VerificationException("The password reset code is expired!!");
+        }
+
+        if (!user.getPasswordResetCode().equals(input.getResetCode())) {
+            throw new VerificationException("Invalid password reset code!!");
+        }
+
+        user.setPassword(passwordEncoder.encode(input.getNewPassword()));
+        user.setPasswordResetCode(null);
+        user.setExpirationTimeOfPasswordResetCode(null);
+        userRepository.save(user);
     }
 
     public void sendVerificationEmail(User user) {
@@ -131,6 +172,41 @@ public class AuthService {
                 + "          </p>"
                 + "          <p style=\"color: #555; font-size: 14px;\">"
                 + "            If you didn't request this, please ignore this email."
+                + "          </p>"
+                + "        </td>"
+                + "      </tr>"
+                + "    </table>"
+                + "  </div>"
+                + "</body>"
+                + "</html>";
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendPasswordResetEmail(User user) {
+        String subject = "Reset Your Password";
+        String resetCode = user.getPasswordResetCode();
+        String htmlMessage = "<!DOCTYPE html>"
+                + "<html>"
+                + "<head><meta charset=\"UTF-8\"><title>Reset Your Password</title></head>"
+                + "<body style=\"font-family: Arial, sans-serif; margin: 0; padding: 0;\">"
+                + "  <div style=\"background-color: #f2f2f2; padding: 20px;\">"
+                + "    <table align=\"center\" width=\"600\" style=\"background-color: #ffffff; padding: 20px;\">"
+                + "      <tr>"
+                + "        <td style=\"text-align: center; padding: 20px;\">"
+                + "          <h2 style=\"color: #333;\">Reset Your Password</h2>"
+                + "          <p style=\"color: #555; font-size: 16px;\">"
+                + "            Use the password reset code below to choose a new password:"
+                + "          </p>"
+                + "          <p style=\"font-size: 24px; font-weight: bold; color: #1a73e8; background-color: #f8f9fa; "
+                + "                padding: 10px 20px; display: inline-block; border-radius: 5px;\">"
+                +             resetCode
+                + "          </p>"
+                + "          <p style=\"color: #555; font-size: 14px;\">"
+                + "            This code expires in 10 minutes. If you didn't request this, you can ignore this email."
                 + "          </p>"
                 + "        </td>"
                 + "      </tr>"

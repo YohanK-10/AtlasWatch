@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 import FeedbackBanner from "@/components/FeedbackBanner";
 import RemoteImage from "@/components/RemoteImage";
 import StatusPanel from "@/components/StatusPanel";
@@ -76,6 +77,7 @@ function getWatchlistErrorCopy(error: unknown) {
 }
 
 export default function WatchlistPage() {
+  const { isAuthenticated } = useAuth();
   const [items, setItems] = useState<WatchlistResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<WatchlistStatus | "ALL">("ALL");
@@ -100,8 +102,15 @@ export default function WatchlistPage() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      setItems([]);
+      setError(null);
+      return;
+    }
+
     void loadWatchlist();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -167,6 +176,22 @@ export default function WatchlistPage() {
 
   if (loading) {
     return <WatchlistSkeleton />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="app-page">
+        <StatusPanel
+          title="Sign in to view your watchlist"
+          description="Your watchlist is private. Log in to manage saved movies, statuses, and removals."
+          tone="error"
+          actionLabel="Go to login"
+          onAction={() => router.push("/login")}
+          secondaryLabel="Create account"
+          onSecondaryAction={() => router.push("/register")}
+        />
+      </div>
+    );
   }
 
   if (error) {

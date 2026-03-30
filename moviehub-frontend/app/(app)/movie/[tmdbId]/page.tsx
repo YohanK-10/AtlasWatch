@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 import FeedbackBanner from "@/components/FeedbackBanner";
 import RemoteImage from "@/components/RemoteImage";
 import StarRating from "@/components/StarRating";
@@ -84,6 +85,7 @@ function getReviewErrorCopy(error: unknown) {
 export default function MovieDetailPage() {
   const { tmdbId } = useParams<{ tmdbId: string }>();
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const id = Number(tmdbId);
 
   const [movie, setMovie] = useState<MovieResponse | null>(null);
@@ -391,49 +393,51 @@ export default function MovieDetailPage() {
                 />
               )}
 
-              <div className="flex flex-wrap gap-3">
-                {!watchlistAdded ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void handleAddToWatchlist("PLAN_TO_WATCH")}
-                      disabled={watchlistLoading}
-                      className="btn-primary"
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add to watchlist
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleAddToWatchlist("WATCHED")}
-                      disabled={watchlistLoading}
-                      className="btn-secondary"
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Mark as watched
-                    </button>
-                  </>
-                ) : (
-                  <span className="app-pill border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-emerald-100">
-                    Saved in your watchlist
-                  </span>
-                )}
+              {isAuthenticated && (
+                <div className="flex flex-wrap gap-3">
+                  {!watchlistAdded ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void handleAddToWatchlist("PLAN_TO_WATCH")}
+                        disabled={watchlistLoading}
+                        className="btn-primary"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add to watchlist
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleAddToWatchlist("WATCHED")}
+                        disabled={watchlistLoading}
+                        className="btn-secondary"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Mark as watched
+                      </button>
+                    </>
+                  ) : (
+                    <span className="app-pill border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-emerald-100">
+                      Saved in your watchlist
+                    </span>
+                  )}
 
-                <button
-                  type="button"
-                  onClick={() => setShowReviewForm((current) => !current)}
-                  className="btn-secondary"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  {showReviewForm ? "Hide review form" : "Write a review"}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewForm((current) => !current)}
+                    className="btn-secondary"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {showReviewForm ? "Hide review form" : "Write a review"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -471,9 +475,13 @@ export default function MovieDetailPage() {
               <StatusPanel
                 compact
                 title="No reviews yet"
-                description="This movie has no reviews yet. Be the first person to leave an impression."
-                actionLabel="Write the first review"
-                onAction={() => setShowReviewForm(true)}
+                description={
+                  isAuthenticated
+                    ? "This movie has no reviews yet. Be the first person to leave an impression."
+                    : "This movie has no reviews yet. Sign in when you want to leave the first reaction."
+                }
+                actionLabel={isAuthenticated ? "Write the first review" : undefined}
+                onAction={isAuthenticated ? () => setShowReviewForm(true) : undefined}
               />
             ) : (
               <div className="space-y-4">
@@ -535,7 +543,21 @@ export default function MovieDetailPage() {
               Leave a rating, write a quick reaction, and optionally mark spoilers before posting.
             </p>
 
-            {!showReviewForm ? (
+            {!isAuthenticated ? (
+              <div className="mt-5 space-y-4 rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
+                <p className="text-sm leading-7 text-slate-300">
+                  Sign in or create an account to add this film to your watchlist, rate it, and join the discussion.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button type="button" onClick={() => router.push("/login")} className="btn-primary">
+                    Log in
+                  </button>
+                  <button type="button" onClick={() => router.push("/register")} className="btn-secondary">
+                    Sign up
+                  </button>
+                </div>
+              </div>
+            ) : !showReviewForm ? (
               <div className="mt-5 space-y-4 rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
                 <p className="text-sm leading-7 text-slate-300">
                   Open the review form when you are ready. Your rating and notes stay on this page until you submit.

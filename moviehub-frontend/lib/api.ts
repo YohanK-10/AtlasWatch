@@ -204,6 +204,20 @@ export function resendVerificationCode(email: string) {
   });
 }
 
+export function requestPasswordReset(email: string) {
+  return request<void>("/auth/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function confirmPasswordReset(email: string, resetCode: string, newPassword: string) {
+  return request<void>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ email, resetCode, newPassword }),
+  });
+}
+
 export function removeFromWatchlist(id: number) {
   return request<void>(`/api/watchlist/${id}`, { method: "DELETE" });
 }
