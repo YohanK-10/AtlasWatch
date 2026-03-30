@@ -3,7 +3,10 @@ import type {
   CreateReviewRequest,
   MovieResponse,
   ReviewResponse,
+  ReviewSummaryResponse,
   SearchResponse,
+  SoloRecommendationRequest,
+  SoloRecommendationResponse,
   WatchlistResponse,
   WatchlistStatus,
 } from "./types";
@@ -140,6 +143,22 @@ export function getReviewsByMovie(tmdbId: number) {
   return request<ReviewResponse[]>(`/api/reviews/movie/${tmdbId}`);
 }
 
+export function getReviewSummaryByMovie(tmdbId: number) {
+  return request<ReviewSummaryResponse>(`/api/reviews/movie/${tmdbId}/summary`);
+}
+
+export async function getMyReviewByMovie(tmdbId: number) {
+  try {
+    const response = await request<ReviewResponse | undefined>(`/api/reviews/movie/${tmdbId}/mine`);
+    return response ?? null;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export function createReview(body: CreateReviewRequest) {
   return request<ReviewResponse>("/api/reviews", {
     method: "POST",
@@ -164,6 +183,13 @@ export function getWatchlist() {
 
 export function addToWatchlist(body: AddToWatchlistRequest) {
   return request<WatchlistResponse>("/api/watchlist", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getSoloRecommendations(body: SoloRecommendationRequest) {
+  return request<SoloRecommendationResponse[]>("/api/recommendations/solo", {
     method: "POST",
     body: JSON.stringify(body),
   });

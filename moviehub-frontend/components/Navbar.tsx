@@ -11,6 +11,7 @@ const PUBLIC_NAV_LINKS = [
 ];
 
 const PRIVATE_NAV_LINKS = [
+  { href: "/pick-for-me", label: "Pick for me" },
   { href: "/watchlist", label: "Watchlist" },
 ];
 

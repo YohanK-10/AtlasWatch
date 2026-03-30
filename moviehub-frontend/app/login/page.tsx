@@ -3,7 +3,25 @@
 "use client"
 import React, {useEffect, useState} from "react";
 import { useRouter } from 'next/navigation';
-import {login} from "@/lib/api";
+import { ApiError, login } from "@/lib/api";
+
+function getLoginErrorMessage(error: unknown) {
+    if (error instanceof ApiError) {
+        if (error.kind === "network") {
+            return "We couldn't reach AtlasWatch right now. Make sure the backend is running and try again.";
+        }
+
+        if (error.status === 401 || error.status === 404) {
+            return "Invalid login credentials. The username/email and password you entered are not valid.";
+        }
+
+        if (error.status === 403) {
+            return "Your account is not verified yet. Check your email for the verification code and try again.";
+        }
+    }
+
+    return "We couldn't log you in right now. Please try again.";
+}
 
 export default function LoginPage() {
     const posters = [
@@ -58,8 +76,8 @@ export default function LoginPage() {
         try {
             await login(formData.loginInfo, formData.password);
             router.push("/homepage")
-        } catch {
-            setError("Invalid login credentials. The username and password you entered is not valid.");
+        } catch (err) {
+            setError(getLoginErrorMessage(err));
         }
     }
 

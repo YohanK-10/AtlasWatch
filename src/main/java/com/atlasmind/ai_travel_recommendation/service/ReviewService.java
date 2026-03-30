@@ -2,6 +2,7 @@ package com.atlasmind.ai_travel_recommendation.service;
 
 import com.atlasmind.ai_travel_recommendation.dto.request.CreateReviewDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.ReviewResponseDto;
+import com.atlasmind.ai_travel_recommendation.dto.response.ReviewSummaryResponseDto;
 import com.atlasmind.ai_travel_recommendation.exceptions.DuplicateResourceException;
 import com.atlasmind.ai_travel_recommendation.exceptions.ResourceNotFoundException;
 import com.atlasmind.ai_travel_recommendation.models.Movie;
@@ -16,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -56,9 +60,10 @@ public class ReviewService {
         review.setUser(user);
         review.setMovie(movie);
         review.setRating(dto.getRating());
-        review.setReviewText(dto.getReviewText());
-        review.setContainsSpoilers(
-                dto.getContainsSpoilers() != null ? dto.getContainsSpoilers() : false);
+        String normalizedReviewText = normalizeReviewText(dto.getReviewText());
+        review.setReviewText(normalizedReviewText);
+        review.setContainsSpoilers(hasWrittenReview(normalizedReviewText) &&
+                dto.getContainsSpoilers() != null && dto.getContainsSpoilers());
 
         Review saved = reviewRepository.save(review);
         log.info("User {} reviewed movie tmdbId={} with rating {}",
@@ -80,8 +85,65 @@ public class ReviewService {
 
         return reviewRepository.findByMovieIdWithDetails(movie.getId())
                 .stream()
+                .filter(review -> hasWrittenReview(review.getReviewText()))
                 .map(ReviewResponseDto::fromReview)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ReviewSummaryResponseDto getReviewSummaryByMovie(Integer tmdbId) {
+        Movie movie = movieRepository.findByTmdbId(tmdbId).orElse(null);
+
+        if (movie == null) {
+            return emptySummary();
+        }
+
+        List<Review> allEntries = reviewRepository.findByMovieIdWithDetails(movie.getId());
+        if (allEntries.isEmpty()) {
+            return emptySummary();
+        }
+
+        Map<Integer, Long> distribution = allEntries.stream()
+                .filter(review -> review.getRating() != null)
+                .collect(Collectors.groupingBy(Review::getRating, Collectors.counting()));
+
+        long totalRatings = allEntries.stream()
+                .filter(review -> review.getRating() != null)
+                .count();
+
+        long writtenReviewCount = allEntries.stream()
+                .filter(review -> hasWrittenReview(review.getReviewText()))
+                .count();
+
+        Double averageRating = totalRatings == 0
+                ? null
+                : allEntries.stream()
+                .filter(review -> review.getRating() != null)
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+
+        return ReviewSummaryResponseDto.builder()
+                .averageRating(averageRating)
+                .totalRatings(totalRatings)
+                .writtenReviewCount(writtenReviewCount)
+                .ratingDistribution(distribution)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ReviewResponseDto> getUserReviewByMovie(User user, Integer tmdbId) {
+        if (user == null) {
+            return Optional.empty();
+        }
+
+        Movie movie = movieRepository.findByTmdbId(tmdbId).orElse(null);
+        if (movie == null) {
+            return Optional.empty();
+        }
+
+        return reviewRepository.findByUserIdAndMovieIdWithDetails(user.getId(), movie.getId())
+                .map(ReviewResponseDto::fromReview);
     }
 
     /**
@@ -122,10 +184,10 @@ public class ReviewService {
 
         // Update fields
         review.setRating(dto.getRating());
-        review.setReviewText(dto.getReviewText());
-        if (dto.getContainsSpoilers() != null) {
-            review.setContainsSpoilers(dto.getContainsSpoilers());
-        }
+        String normalizedReviewText = normalizeReviewText(dto.getReviewText());
+        review.setReviewText(normalizedReviewText);
+        review.setContainsSpoilers(hasWrittenReview(normalizedReviewText) &&
+                dto.getContainsSpoilers() != null && dto.getContainsSpoilers());
 
         Review saved = reviewRepository.save(review);
         return ReviewResponseDto.fromReview(saved);
@@ -146,5 +208,27 @@ public class ReviewService {
 
         reviewRepository.delete(review);
         log.info("User {} deleted review {}", user.getUsername(), reviewId);
+    }
+
+    private boolean hasWrittenReview(String reviewText) {
+        return reviewText != null && !reviewText.trim().isEmpty();
+    }
+
+    private String normalizeReviewText(String reviewText) {
+        if (reviewText == null) {
+            return null;
+        }
+
+        String normalized = reviewText.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private ReviewSummaryResponseDto emptySummary() {
+        return ReviewSummaryResponseDto.builder()
+                .averageRating(null)
+                .totalRatings(0L)
+                .writtenReviewCount(0L)
+                .ratingDistribution(Map.of())
+                .build();
     }
 }

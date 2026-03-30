@@ -2,6 +2,7 @@ package com.atlasmind.ai_travel_recommendation.controller;
 
 import com.atlasmind.ai_travel_recommendation.dto.request.CreateReviewDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.ReviewResponseDto;
+import com.atlasmind.ai_travel_recommendation.dto.response.ReviewSummaryResponseDto;
 import com.atlasmind.ai_travel_recommendation.models.User;
 import com.atlasmind.ai_travel_recommendation.service.ReviewService;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,21 @@ public class ReviewController {
             @PathVariable Integer tmdbId) {
 
         return ResponseEntity.ok(reviewService.getReviewsByMovie(tmdbId));
+    }
+
+    @GetMapping("/movie/{tmdbId}/summary")
+    public ResponseEntity<ReviewSummaryResponseDto> getReviewSummaryByMovie(
+            @PathVariable Integer tmdbId) {
+        return ResponseEntity.ok(reviewService.getReviewSummaryByMovie(tmdbId));
+    }
+
+    @GetMapping("/movie/{tmdbId}/mine")
+    public ResponseEntity<ReviewResponseDto> getMyReviewByMovie(
+            @AuthenticationPrincipal User user,
+            @PathVariable Integer tmdbId) {
+        return reviewService.getUserReviewByMovie(user, tmdbId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /**

@@ -107,9 +107,16 @@ export default function Register() {
     };
 
     const validateEmail = (emailAddress: string): string => {
-        if (!emailAddress) return ""
-        if (!emailAddress.includes("@gmail.com")) return "Invalid email address. Missing @gmail.com."
-        else return "";
+        if (!emailAddress) return "";
+
+        const normalizedEmail = emailAddress.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(normalizedEmail)) {
+            return "Enter a valid email address.";
+        }
+
+        return "";
     }
 
     return (

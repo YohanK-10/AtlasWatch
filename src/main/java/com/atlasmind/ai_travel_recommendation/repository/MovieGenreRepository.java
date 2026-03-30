@@ -3,7 +3,10 @@ package com.atlasmind.ai_travel_recommendation.repository;
 import com.atlasmind.ai_travel_recommendation.models.MovieGenre;
 import com.atlasmind.ai_travel_recommendation.models.MovieGenreId;
 import java.util.List;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,6 +17,9 @@ public interface MovieGenreRepository extends JpaRepository<MovieGenre, MovieGen
      * Used when building the movie response — "what genres does this movie have?"
      */
     List<MovieGenre> findByMovieId(Long movieId);
+
+    @Query("SELECT mg FROM MovieGenre mg JOIN FETCH mg.genre JOIN FETCH mg.movie WHERE mg.movie.id IN :movieIds")
+    List<MovieGenre> findByMovieIdInWithGenre(@Param("movieIds") Collection<Long> movieIds);
 
     /**
      * Delete all genre links for a movie.

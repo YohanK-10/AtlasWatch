@@ -17,10 +17,19 @@ export interface ReviewResponse {
   movieTitle: string;
   username: string;
   rating: number;
-  reviewText: string;
+  reviewText: string | null;
+  hasReviewText: boolean;
   containsSpoilers: boolean;
+  edited: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ReviewSummaryResponse {
+  averageRating: number | null;
+  totalRatings: number;
+  writtenReviewCount: number;
+  ratingDistribution: Record<number, number>;
 }
 
 export interface WatchlistResponse {
@@ -61,13 +70,55 @@ export interface TmdbMovie {
 export interface CreateReviewRequest {
   tmdbId: number;
   rating: number;
-  reviewText: string;
-  containsSpoilers: boolean;
+  reviewText?: string;
+  containsSpoilers?: boolean;
 }
 
 export interface AddToWatchlistRequest {
   tmdbId: number;
   status?: WatchlistStatus;
+}
+
+export type SoloRecommendationMood =
+  | "any"
+  | "comforting"
+  | "funny"
+  | "tense"
+  | "dark"
+  | "emotional"
+  | "thoughtful"
+  | "adventurous"
+  | "cozy"
+  | "romantic"
+  | "eerie"
+  | "hopeful"
+  | "bittersweet"
+  | "mind-bending"
+  | "inspiring";
+
+export type SoloRuntimePreference = "any" | "short" | "medium" | "long";
+
+export interface SoloRecommendationRequest {
+  moods: SoloRecommendationMood[];
+  runtimePreference: SoloRuntimePreference;
+  limit?: number;
+}
+
+export interface SoloRecommendationResponse {
+  tmdbId: number;
+  movieTitle: string;
+  movieOverview: string;
+  releaseDate: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  rating: number | null;
+  runtime: number | null;
+  popularity: number | null;
+  genres: string[];
+  watchlistStatus: WatchlistStatus;
+  addedAt: string;
+  score: number;
+  reasons: string[];
 }
 
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";

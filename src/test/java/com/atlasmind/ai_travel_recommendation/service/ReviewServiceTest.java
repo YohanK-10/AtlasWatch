@@ -2,6 +2,7 @@ package com.atlasmind.ai_travel_recommendation.service;
 
 import com.atlasmind.ai_travel_recommendation.dto.request.CreateReviewDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.ReviewResponseDto;
+import com.atlasmind.ai_travel_recommendation.dto.response.ReviewSummaryResponseDto;
 import com.atlasmind.ai_travel_recommendation.exceptions.DuplicateResourceException;
 import com.atlasmind.ai_travel_recommendation.models.Movie;
 import com.atlasmind.ai_travel_recommendation.models.Review;
@@ -76,5 +77,49 @@ class ReviewServiceTest {
         assertEquals(44L, result.getId());
         assertEquals("alice", result.getUsername());
         assertEquals("Inception", result.getMovieTitle());
+    }
+
+    @Test
+    void getReviewsByMovieHidesRatingOnlyEntriesFromWrittenFeed() {
+        Movie movie = TestFixtures.movie(5L, 27205, "Inception");
+        User user = TestFixtures.user(1L, "alice", "alice@example.com");
+
+        Review writtenReview = TestFixtures.review(10L, user, movie);
+        Review ratingOnly = TestFixtures.review(11L, user, movie);
+        ratingOnly.setReviewText("   ");
+
+        when(movieRepository.findByTmdbId(27205)).thenReturn(Optional.of(movie));
+        when(reviewRepository.findByMovieIdWithDetails(5L)).thenReturn(List.of(writtenReview, ratingOnly));
+
+        List<ReviewResponseDto> result = reviewService.getReviewsByMovie(27205);
+
+        assertEquals(1, result.size());
+        assertEquals(10L, result.get(0).getId());
+    }
+
+    @Test
+    void getReviewSummaryByMovieCountsRatingsAndWrittenReviewsSeparately() {
+        Movie movie = TestFixtures.movie(5L, 27205, "Inception");
+        User alice = TestFixtures.user(1L, "alice", "alice@example.com");
+        User bob = TestFixtures.user(2L, "bob", "bob@example.com");
+
+        Review writtenReview = TestFixtures.review(10L, alice, movie);
+        writtenReview.setRating(9);
+        writtenReview.setReviewText("Excellent");
+
+        Review ratingOnly = TestFixtures.review(11L, bob, movie);
+        ratingOnly.setRating(7);
+        ratingOnly.setReviewText(null);
+
+        when(movieRepository.findByTmdbId(27205)).thenReturn(Optional.of(movie));
+        when(reviewRepository.findByMovieIdWithDetails(5L)).thenReturn(List.of(writtenReview, ratingOnly));
+
+        ReviewSummaryResponseDto result = reviewService.getReviewSummaryByMovie(27205);
+
+        assertEquals(2L, result.getTotalRatings());
+        assertEquals(1L, result.getWrittenReviewCount());
+        assertEquals(1L, result.getRatingDistribution().get(9));
+        assertEquals(1L, result.getRatingDistribution().get(7));
+        assertEquals(8.0, result.getAverageRating());
     }
 }

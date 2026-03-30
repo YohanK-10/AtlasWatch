@@ -2,6 +2,7 @@ package com.atlasmind.ai_travel_recommendation.controller;
 
 import com.atlasmind.ai_travel_recommendation.dto.request.CreateReviewDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.ReviewResponseDto;
+import com.atlasmind.ai_travel_recommendation.dto.response.ReviewSummaryResponseDto;
 import com.atlasmind.ai_travel_recommendation.models.User;
 import com.atlasmind.ai_travel_recommendation.service.ReviewService;
 import com.atlasmind.ai_travel_recommendation.support.TestFixtures;
@@ -39,7 +40,9 @@ class ReviewControllerTest {
                 .username("alice")
                 .rating(9)
                 .reviewText("Great")
+                .hasReviewText(true)
                 .containsSpoilers(false)
+                .edited(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -60,7 +63,9 @@ class ReviewControllerTest {
                 .username("alice")
                 .rating(9)
                 .reviewText("Great")
+                .hasReviewText(true)
                 .containsSpoilers(false)
+                .edited(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -70,5 +75,21 @@ class ReviewControllerTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
+    }
+
+    @Test
+    void getReviewSummaryByMovieReturnsSummary() {
+        ReviewSummaryResponseDto summary = ReviewSummaryResponseDto.builder()
+                .averageRating(8.5)
+                .totalRatings(4L)
+                .writtenReviewCount(2L)
+                .ratingDistribution(java.util.Map.of(8, 2L, 9, 2L))
+                .build();
+        when(reviewService.getReviewSummaryByMovie(27205)).thenReturn(summary);
+
+        ResponseEntity<ReviewSummaryResponseDto> response = reviewController.getReviewSummaryByMovie(27205);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(4L, response.getBody().getTotalRatings());
     }
 }

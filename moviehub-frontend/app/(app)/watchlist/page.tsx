@@ -228,8 +228,17 @@ export default function WatchlistPage() {
           </p>
         </div>
 
-        <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/5 px-4 py-3 text-sm text-slate-300">
-          {items.length} movie{items.length === 1 ? "" : "s"} saved
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => router.push("/pick-for-me")}
+            className="btn-secondary w-fit"
+          >
+            Pick from my watchlist
+          </button>
+          <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/5 px-4 py-3 text-sm text-slate-300">
+            {items.length} movie{items.length === 1 ? "" : "s"} saved
+          </div>
         </div>
       </div>
 
