@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 import MovieCard from "@/components/MovieCard";
 import StatusPanel from "@/components/StatusPanel";
 import { SearchSkeleton } from "@/components/Skeletons";
@@ -43,6 +44,7 @@ function getSearchErrorCopy(error: unknown) {
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const query = (searchParams.get("q") ?? "").trim();
 
   const [results, setResults] = useState<TmdbMovie[]>([]);
@@ -104,8 +106,8 @@ function SearchContent() {
           description="Use the search bar in the navigation to look up a movie, actor, or title fragment. Results from TMDB will appear here."
           actionLabel="Browse homepage"
           onAction={() => router.push("/homepage")}
-          secondaryLabel="Open watchlist"
-          onSecondaryAction={() => router.push("/watchlist")}
+          secondaryLabel={isAuthenticated ? "Open watchlist" : "Sign in"}
+          onSecondaryAction={() => router.push(isAuthenticated ? "/watchlist" : "/login")}
         />
       </div>
     );
@@ -152,8 +154,8 @@ function SearchContent() {
           description="TMDB didn't return any movies for that search. Try a broader title, a different spelling, or another release."
           actionLabel="Search something else"
           onAction={() => router.push("/homepage")}
-          secondaryLabel="Open watchlist"
-          onSecondaryAction={() => router.push("/watchlist")}
+          secondaryLabel={isAuthenticated ? "Open watchlist" : "Sign in"}
+          onSecondaryAction={() => router.push(isAuthenticated ? "/watchlist" : "/login")}
         />
       ) : (
         <>
