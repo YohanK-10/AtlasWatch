@@ -51,7 +51,7 @@ function getWatchlistErrorCopy(error: unknown) {
     return {
       title: "Sign in to view your watchlist",
       description:
-        "The watchlist endpoint requires an authenticated user. Log in again and then reopen this page.",
+        "Your watchlist is only available when you're signed in. Log in again to see your saved movies.",
       actionLabel: "Go to login",
       action: "/login",
     };
@@ -59,9 +59,9 @@ function getWatchlistErrorCopy(error: unknown) {
 
   if (error instanceof ApiError && error.kind === "network") {
     return {
-      title: "Watchlist can't reach the backend",
+      title: "We couldn't load your watchlist",
       description:
-        "The frontend could not connect to the API, so your watchlist never loaded. Make sure the backend is running and try again.",
+        "AtlasWatch couldn't reach the backend just now. Make sure the app is running and try again.",
       actionLabel: "Retry",
       action: "retry",
     };
