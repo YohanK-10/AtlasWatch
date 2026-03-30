@@ -29,7 +29,7 @@ AtlasWatch has four main moving parts:
 
 Your UML/domain model is included below because it gives the clearest overview of how the backend entities relate to each other.
 
-![AtlasWatch domain model](docs/assets/atlaswatch-domain-model.png)
+<img src="docs/assets/atlaswatch-domain-model.png" alt="AtlasWatch domain model" width="1100" />
 
 ### Backend relationship summary
 
