@@ -32,7 +32,9 @@ public class SecurityConfiguration {
                 .cors(withDefaults()) // enables cors in spring when using spring security.
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/auth/login", "/auth/register", "/auth/verify",
-                                "/auth/resend", "/api/test/**", "/api/reviews/**",
+                                "/auth/resend", "/auth/logout", "/auth/refresh",
+                                "/auth/password-reset/**",
+                                "/api/test/**", "/api/reviews/**",
                                 "/api/watchlist/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )

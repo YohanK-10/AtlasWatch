@@ -3,6 +3,7 @@ package com.atlasmind.ai_travel_recommendation.controller;
 import com.atlasmind.ai_travel_recommendation.config.AuthCookieFactory;
 import com.atlasmind.ai_travel_recommendation.dto.EmailOnlyDto;
 import com.atlasmind.ai_travel_recommendation.dto.LoginUserDto;
+import com.atlasmind.ai_travel_recommendation.dto.PasswordResetConfirmDto;
 import com.atlasmind.ai_travel_recommendation.dto.RegisterUserDto;
 import com.atlasmind.ai_travel_recommendation.dto.VerifyUserDto;
 import com.atlasmind.ai_travel_recommendation.dto.response.UserResponseDto;
@@ -77,6 +78,18 @@ public class AuthController {
     public ResponseEntity<?> resendVerify(@RequestBody EmailOnlyDto emailOnlyDto) {
         authenticationService.resendVerificationCode(emailOnlyDto.getEmail());
         return ResponseEntity.ok("Verification code resent successfully!");
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<?> requestPasswordReset(@RequestBody EmailOnlyDto emailOnlyDto) {
+        authenticationService.requestPasswordReset(emailOnlyDto.getEmail());
+        return ResponseEntity.ok("If an account exists for that email, a password reset code has been sent.");
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<?> confirmPasswordReset(@RequestBody PasswordResetConfirmDto passwordResetConfirmDto) {
+        authenticationService.resetPassword(passwordResetConfirmDto);
+        return ResponseEntity.ok("Password reset successfully!");
     }
 
     @PostMapping("/logout")

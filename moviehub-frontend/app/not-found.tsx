@@ -12,15 +12,14 @@ export default function NotFound() {
 
             <div className="space-y-4">
               <p className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-400">
-                404 page not found
+                Page not found
               </p>
               <h1 className="app-title max-w-2xl">
-                This page slipped out of the watchlist.
+                We couldn&apos;t find that page.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                The route you tried to open does not exist, may have been moved, or was typed
-                incorrectly. You can jump back into discovery, search for a movie directly, or head
-                to the login screen.
+                It may have been moved, removed, or the link might be incomplete. You can head back
+                to the homepage, search for a movie, or return to login.
               </p>
             </div>
 
@@ -55,27 +54,21 @@ export default function NotFound() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white">A quick recovery path</h2>
+                <h2 className="text-2xl font-bold text-white">Need a quick way back?</h2>
                 <p className="text-sm leading-7 text-slate-300">
-                  If you landed here from an old bookmark or a stale link, the movie may still be
-                  searchable from the homepage or the search page even though this route is missing.
+                  Try the homepage to keep browsing, or use search if you were looking for a
+                  specific movie.
                 </p>
               </div>
 
               <div className="rounded-[1.25rem] border border-white/10 bg-black/20 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Helpful routes
+                  What you can do next
                 </p>
-                <div className="mt-4 space-y-3 text-sm text-slate-200">
-                  <p>
-                    <span className="text-slate-400">Home:</span> `/homepage`
-                  </p>
-                  <p>
-                    <span className="text-slate-400">Search:</span> `/search?q=inception`
-                  </p>
-                  <p>
-                    <span className="text-slate-400">Movie details:</span> `/movie/27205`
-                  </p>
+                <div className="mt-4 space-y-3 text-sm leading-7 text-slate-200">
+                  <p>Browse trending movies from the homepage.</p>
+                  <p>Search for the title you wanted.</p>
+                  <p>Sign in again if you were trying to open something from your account.</p>
                 </div>
               </div>
             </div>

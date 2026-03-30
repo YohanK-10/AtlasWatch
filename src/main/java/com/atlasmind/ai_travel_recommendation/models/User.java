@@ -35,6 +35,10 @@ public class User implements UserDetails {
     private String verificationCode;
     @Column(name = "expirationTimeOfVerificationCodes")
     private LocalDateTime expirationTimeOfVerificationCode;
+    @Column(name = "passwordResetCode")
+    private String passwordResetCode;
+    @Column(name = "expirationTimeOfPasswordResetCode")
+    private LocalDateTime expirationTimeOfPasswordResetCode;
     private Boolean enable;
     private Boolean locked; //TODO: CHECK THIS!!
 
