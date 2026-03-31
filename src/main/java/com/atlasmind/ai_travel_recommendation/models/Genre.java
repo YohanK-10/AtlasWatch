@@ -11,6 +11,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@Table(name = "genre", indexes = {
+        @Index(name = "idx_genre_name", columnList = "name")
+})
 public class Genre {
 
     @Id

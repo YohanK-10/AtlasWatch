@@ -8,6 +8,10 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "movie_genre", indexes = {
+        @Index(name = "idx_movie_genre_movie", columnList = "movie_id"),
+        @Index(name = "idx_movie_genre_genre", columnList = "genre_id")
+})
 public class MovieGenre {
     @EmbeddedId
     private MovieGenreId movieGenreId;

@@ -72,4 +72,29 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
             ORDER BY m.movieRating DESC, m.popularity DESC, m.cachedAt DESC
             """)
     List<Movie> findTopRatedMovies(Pageable pageable);
+
+    @Query("""
+            SELECT m FROM Movie m
+            WHERE m.popularity IS NOT NULL
+              AND m.movieRating IS NOT NULL
+              AND m.movieRating >= :minimumRating
+              AND m.runtime IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(m.posterPath, ''))) > 0
+              AND m.releaseDate IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(m.overview, ''))) > 0
+            ORDER BY m.popularity DESC, m.movieRating DESC, m.cachedAt DESC
+            """)
+    List<Movie> findRecommendationReadyPopularMovies(@Param("minimumRating") double minimumRating, Pageable pageable);
+
+    @Query("""
+            SELECT m FROM Movie m
+            WHERE m.movieRating IS NOT NULL
+              AND m.movieRating >= :minimumRating
+              AND m.runtime IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(m.posterPath, ''))) > 0
+              AND m.releaseDate IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(m.overview, ''))) > 0
+            ORDER BY m.movieRating DESC, m.popularity DESC, m.cachedAt DESC
+            """)
+    List<Movie> findRecommendationReadyTopRatedMovies(@Param("minimumRating") double minimumRating, Pageable pageable);
 }

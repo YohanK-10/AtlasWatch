@@ -1,6 +1,7 @@
 package com.atlasmind.ai_travel_recommendation.repository;
 
 import com.atlasmind.ai_travel_recommendation.models.WatchList;
+import com.atlasmind.ai_travel_recommendation.models.WatchListStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +31,8 @@ public interface WatchlistRepository extends JpaRepository<WatchList, Long> {
      */
     @Query("SELECT w FROM WatchList w JOIN FETCH w.movie JOIN FETCH w.user WHERE w.id = :id")
     Optional<WatchList> findByIdWithDetails(@Param("id") Long id);
+
+    @Query("SELECT w.movie.id FROM WatchList w WHERE w.user.id = :userId AND w.status = :status")
+    List<Long> findMovieIdsByUserIdAndStatus(@Param("userId") Long userId,
+                                             @Param("status") WatchListStatus status);
 }

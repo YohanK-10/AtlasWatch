@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "movie", indexes = {
+        @Index(name = "idx_movie_popularity_rating", columnList = "popularity,movie_rating"),
+        @Index(name = "idx_movie_rating_popularity", columnList = "movie_rating,popularity"),
+        @Index(name = "idx_movie_cached_at", columnList = "cached_at")
+})
 public class Movie {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "movie_seq")

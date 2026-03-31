@@ -14,10 +14,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(
+        name = "watch_list",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_watchlist_user_movie",
                 columnNames = {"user_id", "movie_id"}
-        )
+        ),
+        indexes = {
+                @Index(name = "idx_watchlist_user_status_movie", columnList = "user_id,status,movie_id"),
+                @Index(name = "idx_watchlist_user_movie_lookup", columnList = "user_id,movie_id")
+        }
 )
 public class WatchList {
 

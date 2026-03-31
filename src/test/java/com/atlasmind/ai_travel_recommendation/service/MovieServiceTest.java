@@ -11,19 +11,22 @@ import com.atlasmind.ai_travel_recommendation.repository.GenreRepository;
 import com.atlasmind.ai_travel_recommendation.repository.MovieGenreRepository;
 import com.atlasmind.ai_travel_recommendation.repository.MovieRepository;
 import com.atlasmind.ai_travel_recommendation.support.TestFixtures;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MovieServiceTest {
@@ -54,9 +57,13 @@ class MovieServiceTest {
 
     @Test
     void getMovieDetailsDtoRefreshesMovieAndBuildsResponseDto() {
-        MovieDetailDto tmdbData = TestFixtures.movieDetailDto(27205L, "Inception",
-                List.of(new MovieDetailDto.Genre(28, "Action")));
+        MovieDetailDto tmdbData = TestFixtures.movieDetailDto(
+                27205L,
+                "Inception",
+                List.of(new MovieDetailDto.Genre(28, "Action"))
+        );
         Genre action = TestFixtures.genre(2L, 28, "Action");
+
         when(movieRepository.findByTmdbId(27205)).thenReturn(Optional.empty());
         when(tmdbApiService.getMovieDetails(27205L)).thenReturn(tmdbData);
         when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
@@ -78,13 +85,42 @@ class MovieServiceTest {
     }
 
     @Test
+    void saveOrUpdateMovieDetailsCreatesMissingGenresFromTmdbDetails() {
+        MovieDetailDto tmdbData = TestFixtures.movieDetailDto(
+                27205L,
+                "Inception",
+                List.of(new MovieDetailDto.Genre(878, "Science Fiction"))
+        );
+
+        when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
+            Movie movie = invocation.getArgument(0);
+            if (movie.getId() == null) {
+                movie.setId(42L);
+            }
+            return movie;
+        });
+        when(genreRepository.findByTmdbIdIn(List.of(878))).thenReturn(List.of());
+        when(genreRepository.save(any(Genre.class))).thenAnswer(invocation -> {
+            Genre genre = invocation.getArgument(0);
+            genre.setId(7L);
+            return genre;
+        });
+
+        Movie saved = movieService.saveOrUpdateMovieDetails(tmdbData, null);
+
+        assertNotNull(saved);
+        verify(genreRepository).save(any(Genre.class));
+        verify(movieGenreRepository).save(any(MovieGenre.class));
+    }
+
+    @Test
     void searchMoviesPersistsReturnedResults() {
         MovieDto dto = TestFixtures.movieDto(100L, "Test Movie", List.of(12));
         SearchResponseDto response = new SearchResponseDto(1, List.of(dto), 1, 1);
         Genre genre = TestFixtures.genre(1L, 12, "Adventure");
 
         when(tmdbApiService.searchMovies("test", 1)).thenReturn(response);
-        when(movieRepository.existsByTmdbId(100)).thenReturn(false);
+        when(movieRepository.findByTmdbId(100)).thenReturn(Optional.empty());
         when(movieRepository.save(any(Movie.class))).thenAnswer(invocation -> {
             Movie movie = invocation.getArgument(0);
             movie.setId(5L);
