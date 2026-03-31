@@ -2,6 +2,8 @@ import type {
   AddToWatchlistRequest,
   CreateReviewRequest,
   MovieResponse,
+  RecommendationRequest,
+  RecommendationResponse,
   ReviewResponse,
   ReviewSummaryResponse,
   SearchResponse,
@@ -186,6 +188,29 @@ export function addToWatchlist(body: AddToWatchlistRequest) {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function getRecommendations(body: RecommendationRequest) {
+  return request<RecommendationResponse[]>("/api/recommendations", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getColdStartRecommendations(body: RecommendationRequest) {
+  const params = new URLSearchParams();
+  body.moods.forEach((mood) => params.append("moods", mood));
+  if (body.runtimePreference) {
+    params.set("runtimePreference", body.runtimePreference);
+  }
+  if (body.limit) {
+    params.set("limit", String(body.limit));
+  }
+
+  const query = params.toString();
+  return request<RecommendationResponse[]>(
+    `/api/recommendations/cold-start${query ? `?${query}` : ""}`
+  );
 }
 
 export function getSoloRecommendations(body: SoloRecommendationRequest) {

@@ -44,6 +44,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/api/movies/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recommendations/cold-start").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                         .anyRequest().authenticated()
                 )

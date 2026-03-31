@@ -8,19 +8,20 @@ import RemoteImage from "@/components/RemoteImage";
 import StatusPanel from "@/components/StatusPanel";
 import {
   ApiError,
+  getColdStartRecommendations,
   getErrorMessage,
-  getSoloRecommendations,
+  getRecommendations,
 } from "@/lib/api";
 import {
   POSTER_PLACEHOLDER,
   posterUrl,
-  type SoloRecommendationMood,
-  type SoloRecommendationResponse,
-  type SoloRuntimePreference,
+  type RecommendationMood,
+  type RecommendationResponse,
+  type RecommendationRuntimePreference,
 } from "@/lib/types";
 
-const MOOD_OPTIONS: { value: SoloRecommendationMood; label: string; description: string }[] = [
-  { value: "any", label: "Open to anything", description: "No mood bias, just strong watchlist picks." },
+const MOOD_OPTIONS: { value: RecommendationMood; label: string; description: string }[] = [
+  { value: "any", label: "Open to anything", description: "No mood bias, just strong all-around picks." },
   { value: "comforting", label: "Comforting", description: "Warm, easy, low-friction choices." },
   { value: "cozy", label: "Cozy", description: "Soft, familiar, low-stakes comfort." },
   { value: "funny", label: "Funny", description: "Lighter picks with playful energy." },
@@ -37,19 +38,19 @@ const MOOD_OPTIONS: { value: SoloRecommendationMood; label: string; description:
   { value: "inspiring", label: "Inspiring", description: "A lift, a push, or a sense of momentum." },
 ];
 
-const RUNTIME_OPTIONS: { value: SoloRuntimePreference; label: string; description: string }[] = [
+const RUNTIME_OPTIONS: { value: RecommendationRuntimePreference; label: string; description: string }[] = [
   { value: "any", label: "Any length", description: "Runtime is not part of the decision." },
   { value: "short", label: "Short", description: "Best when you want a lower-commitment watch." },
-  { value: "medium", label: "Medium", description: "A balanced pick for a normal movie night." },
+  { value: "medium", label: "Medium", description: "A balanced pick for a standard movie session." },
   { value: "long", label: "Long", description: "For when you want a bigger, more immersive watch." },
 ];
 
 function getRecommendationErrorCopy(error: unknown) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
     return {
-      title: "Sign in to get personal picks",
+      title: "Sign in again to personalize your picks",
       description:
-        "This feature scores movies from your own watchlist, so AtlasWatch needs an authenticated session before it can rank anything for you.",
+        "AtlasWatch could not read your account session, so it could not fold in your ratings, reviews, and watchlist state.",
       actionLabel: "Go to login",
       action: "/login",
     };
@@ -59,14 +60,14 @@ function getRecommendationErrorCopy(error: unknown) {
     return {
       title: "We couldn't reach the recommendation service",
       description:
-        "AtlasWatch could not connect to the backend just now, so your watchlist triage never finished. Try again in a moment.",
+        "AtlasWatch could not connect to the backend just now, so the recommendation pass never finished. Try again in a moment.",
       actionLabel: "Try again",
       action: "retry",
     };
   }
 
   return {
-    title: "We couldn't generate a pick right now",
+    title: "We couldn't generate recommendations right now",
     description:
       "The recommendation request did not complete successfully. Adjust the filters or retry the request.",
     actionLabel: "Try again",
@@ -77,10 +78,10 @@ function getRecommendationErrorCopy(error: unknown) {
 export default function PickForMePage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [selectedMoods, setSelectedMoods] = useState<SoloRecommendationMood[]>(["any"]);
-  const [runtimePreference, setRuntimePreference] = useState<SoloRuntimePreference>("any");
+  const [selectedMoods, setSelectedMoods] = useState<RecommendationMood[]>(["any"]);
+  const [runtimePreference, setRuntimePreference] = useState<RecommendationRuntimePreference>("any");
   const [limit, setLimit] = useState(5);
-  const [results, setResults] = useState<SoloRecommendationResponse[]>([]);
+  const [results, setResults] = useState<RecommendationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [feedback, setFeedback] = useState<{ tone: "success" | "error" | "info"; title: string; message: string } | null>(null);
@@ -96,19 +97,23 @@ export default function PickForMePage() {
 
   const loadRecommendations = useCallback(
     async (options?: {
-      moods?: SoloRecommendationMood[];
-      runtimePreference?: SoloRuntimePreference;
+      moods?: RecommendationMood[];
+      runtimePreference?: RecommendationRuntimePreference;
       limit?: number;
     }) => {
       setLoading(true);
       setError(null);
 
+      const request = {
+        moods: options?.moods ?? selectedMoods,
+        runtimePreference: options?.runtimePreference ?? runtimePreference,
+        limit: options?.limit ?? limit,
+      };
+
       try {
-        const data = await getSoloRecommendations({
-          moods: options?.moods ?? selectedMoods,
-          runtimePreference: options?.runtimePreference ?? runtimePreference,
-          limit: options?.limit ?? limit,
-        });
+        const data = isAuthenticated
+          ? await getRecommendations(request)
+          : await getColdStartRecommendations(request);
         setResults(data);
         setFeedback(null);
       } catch (loadError) {
@@ -117,23 +122,16 @@ export default function PickForMePage() {
         setFeedback({
           tone: "error",
           title: "Recommendation request failed",
-          message: getErrorMessage(loadError, "AtlasWatch couldn't finish ranking your watchlist."),
+          message: getErrorMessage(loadError, "AtlasWatch couldn't finish building your shortlist."),
         });
       } finally {
         setLoading(false);
       }
     },
-    [limit, runtimePreference, selectedMoods]
+    [isAuthenticated, limit, runtimePreference, selectedMoods]
   );
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      setResults([]);
-      setError(null);
-      return;
-    }
-
     void loadRecommendations({
       moods: selectedMoods,
       runtimePreference,
@@ -152,7 +150,7 @@ export default function PickForMePage() {
     await loadRecommendations();
   };
 
-  const toggleMood = (value: SoloRecommendationMood) => {
+  const toggleMood = (value: RecommendationMood) => {
     setSelectedMoods((current) => {
       if (value === "any") {
         return ["any"];
@@ -175,31 +173,8 @@ export default function PickForMePage() {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const formatAddedAt = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-
   const topPick = results[0];
   const remainingPicks = results.slice(1);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="app-page">
-        <StatusPanel
-          title="Sign in to use watchlist triage"
-          description="Pick for me ranks movies from your own watchlist, so you need an account and an active session before AtlasWatch can narrow the list down for you."
-          tone="error"
-          actionLabel="Go to login"
-          onAction={() => router.push("/login")}
-          secondaryLabel="Create account"
-          onSecondaryAction={() => router.push("/register")}
-        />
-      </div>
-    );
-  }
 
   if (error && !loading) {
     const copy = getRecommendationErrorCopy(error);
@@ -217,8 +192,8 @@ export default function PickForMePage() {
               router.push(copy.action);
             }
           }}
-          secondaryLabel="Open watchlist"
-          onSecondaryAction={() => router.push("/watchlist")}
+          secondaryLabel="Browse movies"
+          onSecondaryAction={() => router.push("/homepage")}
         />
       </div>
     );
@@ -229,16 +204,16 @@ export default function PickForMePage() {
       <section className="app-surface app-card overflow-hidden p-6 sm:p-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr,0.95fr]">
           <div>
-            <p className="text-xs uppercase tracking-[0.26em] text-amber-300/85">Watchlist triage</p>
-            <h1 className="app-title mt-3 max-w-3xl">Tell AtlasWatch what kind of night this is.</h1>
+            <p className="text-xs uppercase tracking-[0.26em] text-amber-300/85">Recommended for you</p>
+            <h1 className="app-title mt-3 max-w-3xl">Tell AtlasWatch what feels right today.</h1>
             <p className="app-copy-soft mt-4 max-w-2xl text-sm leading-7 sm:text-base">
-              This tool ranks movies from your watchlist that you have not finished yet. It balances
-              mood, runtime, the age of each saved title, and the genres you tend to rate highly.
+              AtlasWatch narrows the wider movie catalog into a short, explainable list. When you are signed in,
+              it also folds in your ratings, reviews, and watchlist signals before ranking the final picks.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/5 p-4">
-                <p className="text-sm font-semibold text-white">Current mood</p>
+                <p className="text-sm font-semibold text-white">Current vibe</p>
                 <p className="mt-2 text-sm text-slate-300">
                   {activeMoods.map((option) => option.label).join(", ")}
                 </p>
@@ -254,6 +229,24 @@ export default function PickForMePage() {
                 <p className="mt-1 text-sm text-slate-400">{activeRuntime.description}</p>
               </div>
             </div>
+
+            {!isAuthenticated && (
+              <div className="mt-5 rounded-[1.2rem] border border-cyan-400/20 bg-cyan-400/8 p-4">
+                <p className="text-sm font-semibold text-cyan-100">Browsing without an account</p>
+                <p className="mt-2 text-sm text-cyan-50/85">
+                  You are seeing wider-catalog picks. Sign in if you want AtlasWatch to blend in your own ratings,
+                  reviews, and watchlist taste signals.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button type="button" onClick={() => router.push("/login")} className="btn-secondary">
+                    Sign in
+                  </button>
+                  <button type="button" onClick={() => router.push("/register")} className="btn-secondary">
+                    Create account
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="rounded-[1.5rem] border border-slate-700/35 bg-white/4 p-5 sm:p-6">
@@ -322,7 +315,7 @@ export default function PickForMePage() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? "Ranking watchlist..." : "Pick for me"}
+                {loading ? "Finding picks..." : "Pick for me"}
               </button>
               <button
                 type="button"
@@ -365,12 +358,12 @@ export default function PickForMePage() {
         </section>
       ) : results.length === 0 ? (
         <StatusPanel
-          title="No watchlist candidates yet"
-          description="AtlasWatch could not find any unfinished movies to rank. Add a few titles to your watchlist or move finished films into the watched state, then come back here."
-          actionLabel="Open watchlist"
-          onAction={() => router.push("/watchlist")}
-          secondaryLabel="Discover movies"
-          onSecondaryAction={() => router.push("/homepage")}
+          title="No recommendation candidates yet"
+          description="AtlasWatch could not find enough catalog data to build a shortlist just yet. Browse the homepage or search for a few movies, then try again."
+          actionLabel="Browse movies"
+          onAction={() => router.push("/homepage")}
+          secondaryLabel={isAuthenticated ? "Open watchlist" : "Sign in"}
+          onSecondaryAction={() => router.push(isAuthenticated ? "/watchlist" : "/login")}
         />
       ) : (
         <section className="space-y-6">
@@ -397,12 +390,18 @@ export default function PickForMePage() {
                       <p className="text-xs uppercase tracking-[0.26em] text-amber-300/85">Top pick</p>
                       <h2 className="app-section-title mt-2">{topPick.movieTitle}</h2>
                       <p className="app-copy-muted mt-2 text-sm">
-                        Added to your watchlist on {formatAddedAt(topPick.addedAt)}
+                        {topPick.onWatchlist
+                          ? "Already saved in your watchlist."
+                          : isAuthenticated
+                            ? "Picked from the wider catalog using your current filters and taste signals."
+                            : "Picked from the wider catalog while AtlasWatch learns your taste."}
                       </p>
                     </div>
-                    <span className="app-pill">
-                      {topPick.watchlistStatus === "PLAN_TO_WATCH" ? "Plan to watch" : "Watched"}
-                    </span>
+                    {topPick.onWatchlist && (
+                      <span className="app-pill border-amber-400/18 bg-amber-400/10 text-amber-100">
+                        On your watchlist
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-sm leading-7 text-slate-200 sm:text-base">
@@ -432,7 +431,7 @@ export default function PickForMePage() {
                   </div>
 
                   <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
-                    <p className="text-sm font-semibold text-white">Why this rose to the top</p>
+                    <p className="text-sm font-semibold text-white">Why this made the shortlist</p>
                     <div className="mt-3 space-y-2">
                       {topPick.reasons.map((reason) => (
                         <div key={reason} className="flex gap-3 text-sm text-slate-300">
@@ -453,10 +452,10 @@ export default function PickForMePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => router.push("/watchlist")}
+                      onClick={() => router.push(topPick.onWatchlist && isAuthenticated ? "/watchlist" : "/homepage")}
                       className="btn-secondary"
                     >
-                      Back to watchlist
+                      {topPick.onWatchlist && isAuthenticated ? "Open watchlist" : "Browse more movies"}
                     </button>
                   </div>
                 </div>
@@ -485,19 +484,26 @@ export default function PickForMePage() {
 
                     <div className="min-w-0 flex-1">
                       <div>
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/movie/${pick.tmdbId}`)}
-                            className="text-left"
-                          >
-                            <h3 className="text-lg font-semibold text-white transition hover:text-amber-200">
-                              {pick.movieTitle}
-                            </h3>
-                          </button>
-                          <p className="mt-1 text-sm text-slate-400">
-                            Added {formatAddedAt(pick.addedAt)}
-                          </p>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/movie/${pick.tmdbId}`)}
+                          className="text-left"
+                        >
+                          <h3 className="text-lg font-semibold text-white transition hover:text-amber-200">
+                            {pick.movieTitle}
+                          </h3>
+                        </button>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {pick.onWatchlist && (
+                            <span className="app-pill border-amber-400/18 bg-amber-400/10 text-amber-100">
+                              On your watchlist
+                            </span>
+                          )}
+                          {pick.releaseDate && (
+                            <span className="app-pill bg-black/20">
+                              {pick.releaseDate.split("-")[0]}
+                            </span>
+                          )}
                         </div>
                       </div>
 
