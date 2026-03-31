@@ -6,10 +6,12 @@ import com.atlasmind.ai_travel_recommendation.dto.response.RecommendationRespons
 import com.atlasmind.ai_travel_recommendation.dto.response.SoloRecommendationResponseDto;
 import com.atlasmind.ai_travel_recommendation.models.User;
 import com.atlasmind.ai_travel_recommendation.service.RecommendationService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
+@Validated
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
@@ -27,18 +30,19 @@ public class RecommendationController {
     @PostMapping
     public ResponseEntity<List<RecommendationResponseDto>> getRecommendations(
             @AuthenticationPrincipal User user,
-            @RequestBody RecommendationRequestDto request
+            @Valid @RequestBody RecommendationRequestDto request
     ) {
         return ResponseEntity.ok(recommendationService.getRecommendations(user, request));
     }
 
     @GetMapping("/cold-start")
     public ResponseEntity<List<RecommendationResponseDto>> getColdStartRecommendations(
-            @ModelAttribute RecommendationRequestDto request
+            @Valid @ModelAttribute RecommendationRequestDto request
     ) {
         return ResponseEntity.ok(recommendationService.getColdStartRecommendations(request));
     }
 
+    @Deprecated(forRemoval = false)
     @PostMapping("/solo")
     public ResponseEntity<List<SoloRecommendationResponseDto>> getSoloRecommendations(
             @AuthenticationPrincipal User user,

@@ -94,6 +94,30 @@ export default function PickForMePage() {
     () => RUNTIME_OPTIONS.find((option) => option.value === runtimePreference) ?? RUNTIME_OPTIONS[0],
     [runtimePreference]
   );
+  const selectionSummary = useMemo(() => {
+    const moodSummary =
+      activeMoods.length === 1
+        ? activeMoods[0]?.label ?? "Open to anything"
+        : activeMoods.map((option) => option.label).join(", ");
+    const runtimeSummary =
+      activeRuntime.value === "any"
+        ? "any runtime"
+        : `${activeRuntime.label.toLowerCase()} runtime`;
+
+    return `${moodSummary} with ${runtimeSummary}`;
+  }, [activeMoods, activeRuntime]);
+
+  const resultSummary = useMemo(() => {
+    if (results.length === 0) {
+      return `AtlasWatch is still looking for strong candidates for ${selectionSummary}.`;
+    }
+
+    if (results.length === limit) {
+      return `AtlasWatch found the full ${limit}-pick shortlist for ${selectionSummary}.`;
+    }
+
+    return `AtlasWatch found ${results.length} pick${results.length === 1 ? "" : "s"} for ${selectionSummary}.`;
+  }, [limit, results.length, selectionSummary]);
 
   const loadRecommendations = useCallback(
     async (options?: {
@@ -145,6 +169,17 @@ export default function PickForMePage() {
     return () => window.clearTimeout(id);
   }, [feedback]);
 
+  const resetFilters = () => {
+    setSelectedMoods(["any"]);
+    setRuntimePreference("any");
+    setLimit(5);
+    void loadRecommendations({
+      moods: ["any"],
+      runtimePreference: "any",
+      limit: 5,
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     await loadRecommendations();
@@ -172,6 +207,14 @@ export default function PickForMePage() {
     const mins = runtime % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
+
+  const loadingTitle = isAuthenticated
+    ? "Building your personalized shortlist"
+    : "Scanning the wider catalog for strong fits";
+
+  const loadingDescription = isAuthenticated
+    ? `AtlasWatch is ranking up to ${limit} picks for ${selectionSummary}, while blending in your ratings, reviews, and watchlist signals.`
+    : `AtlasWatch is pulling up to ${limit} wider-catalog picks for ${selectionSummary}. Sign in anytime to fold your personal taste into the ranking.`;
 
   const topPick = results[0];
   const remainingPicks = results.slice(1);
@@ -211,6 +254,24 @@ export default function PickForMePage() {
               it also folds in your ratings, reviews, and watchlist signals before ranking the final picks.
             </p>
 
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span
+                className={`app-pill ${
+                  isAuthenticated
+                    ? "border-emerald-400/18 bg-emerald-400/10 text-emerald-100"
+                    : "border-cyan-400/18 bg-cyan-400/10 text-cyan-100"
+                }`}
+              >
+                {isAuthenticated ? "Personalized mode" : "Preview mode"}
+              </span>
+              <span className="app-pill bg-black/20">{activeRuntime.label}</span>
+              {activeMoods.slice(0, 3).map((option) => (
+                <span key={option.value} className="app-pill bg-black/20">
+                  {option.label}
+                </span>
+              ))}
+            </div>
+
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/5 p-4">
                 <p className="text-sm font-semibold text-white">Current vibe</p>
@@ -230,7 +291,14 @@ export default function PickForMePage() {
               </div>
             </div>
 
-            {!isAuthenticated && (
+            {isAuthenticated ? (
+              <div className="mt-5 rounded-[1.2rem] border border-emerald-400/20 bg-emerald-400/8 p-4">
+                <p className="text-sm font-semibold text-emerald-100">Personalized ranking is active</p>
+                <p className="mt-2 text-sm text-emerald-50/85">
+                  AtlasWatch is blending your saved watchlist, review history, and past ratings before it orders the final shortlist.
+                </p>
+              </div>
+            ) : (
               <div className="mt-5 rounded-[1.2rem] border border-cyan-400/20 bg-cyan-400/8 p-4">
                 <p className="text-sm font-semibold text-cyan-100">Browsing without an account</p>
                 <p className="mt-2 text-sm text-cyan-50/85">
@@ -251,7 +319,7 @@ export default function PickForMePage() {
 
           <form onSubmit={handleSubmit} className="rounded-[1.5rem] border border-slate-700/35 bg-white/4 p-5 sm:p-6">
             <div>
-              <p className="text-sm font-semibold text-white">1. What moods are you in?</p>
+              <p className="text-sm font-semibold text-white">1. What kind of vibe are you after?</p>
               <p className="mt-2 text-sm text-slate-400">Choose one or more. AtlasWatch will blend them together.</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {MOOD_OPTIONS.map((option) => (
@@ -272,7 +340,7 @@ export default function PickForMePage() {
             </div>
 
             <div className="mt-6">
-              <p className="text-sm font-semibold text-white">2. How much time do you want to commit?</p>
+              <p className="text-sm font-semibold text-white">2. How much time do you have?</p>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {RUNTIME_OPTIONS.map((option) => (
                   <button
@@ -308,27 +376,16 @@ export default function PickForMePage() {
                   </option>
                 ))}
               </select>
-              <p className="mt-2 text-sm text-slate-400">
-                AtlasWatch is currently showing {results.length} pick{results.length === 1 ? "" : "s"} for this filter set.
-              </p>
+              <p className="mt-2 text-sm text-slate-400">{resultSummary}</p>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? "Finding picks..." : "Pick for me"}
+                {loading ? "Refreshing shortlist..." : "Refresh shortlist"}
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedMoods(["any"]);
-                  setRuntimePreference("any");
-                  setLimit(5);
-                  void loadRecommendations({
-                    moods: ["any"],
-                    runtimePreference: "any",
-                    limit: 5,
-                  });
-                }}
+                onClick={resetFilters}
                 disabled={loading}
                 className="btn-secondary"
               >
@@ -350,6 +407,11 @@ export default function PickForMePage() {
 
       {loading ? (
         <section className="space-y-4">
+          <StatusPanel
+            title={loadingTitle}
+            description={loadingDescription}
+            tone="default"
+          />
           <div className="skeleton-block h-72 rounded-[1.5rem]" />
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="skeleton-block h-52 rounded-[1.5rem]" />
@@ -358,15 +420,48 @@ export default function PickForMePage() {
         </section>
       ) : results.length === 0 ? (
         <StatusPanel
-          title="No recommendation candidates yet"
-          description="AtlasWatch could not find enough catalog data to build a shortlist just yet. Browse the homepage or search for a few movies, then try again."
-          actionLabel="Browse movies"
-          onAction={() => router.push("/homepage")}
-          secondaryLabel={isAuthenticated ? "Open watchlist" : "Sign in"}
-          onSecondaryAction={() => router.push(isAuthenticated ? "/watchlist" : "/login")}
+          title="No strong matches for this filter mix yet"
+          description={`AtlasWatch could not find a confident shortlist for ${selectionSummary}. Try broadening the vibe mix, loosening the runtime lens, or resetting the filters for a wider pass.`}
+          actionLabel="Reset filters"
+          onAction={resetFilters}
+          secondaryLabel={isAuthenticated ? "Browse movies" : "Sign in"}
+          onSecondaryAction={() => router.push(isAuthenticated ? "/homepage" : "/login")}
         />
       ) : (
         <section className="space-y-6">
+          <div className="app-surface app-card p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.26em] text-amber-300/85">Shortlist ready</p>
+                <h2 className="app-section-title mt-2">
+                  {results.length} pick{results.length === 1 ? "" : "s"} for {selectionSummary}
+                </h2>
+                <p className="app-copy-muted mt-2 text-sm">
+                  {isAuthenticated
+                    ? "These results are ranked using the wider catalog plus your ratings, reviews, and watchlist signals."
+                    : "These results come from the wider catalog. Sign in to blend your own watch history and saved taste into the ranking."}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`app-pill ${
+                    isAuthenticated
+                      ? "border-emerald-400/18 bg-emerald-400/10 text-emerald-100"
+                      : "border-cyan-400/18 bg-cyan-400/10 text-cyan-100"
+                  }`}
+                >
+                  {isAuthenticated ? "Personalized" : "Preview"}
+                </span>
+                <span className="app-pill bg-black/20">{activeRuntime.label}</span>
+                {activeMoods.slice(0, 2).map((option) => (
+                  <span key={option.value} className="app-pill bg-black/20">
+                    {option.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {topPick && (
             <article className="app-surface app-card overflow-hidden">
               <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[220px,1fr] lg:items-start">
@@ -520,6 +615,7 @@ export default function PickForMePage() {
                       </div>
 
                       <div className="mt-4 space-y-2">
+                        <p className="text-sm font-semibold text-white">Why it works</p>
                         {pick.reasons.map((reason) => (
                           <div key={reason} className="flex gap-3 text-sm text-slate-300">
                             <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-400" />

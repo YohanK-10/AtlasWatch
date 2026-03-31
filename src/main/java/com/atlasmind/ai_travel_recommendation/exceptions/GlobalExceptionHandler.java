@@ -14,6 +14,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.View;
@@ -85,6 +87,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, extractValidationMessage(ex.getBindingResult().getFieldError()));
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleBindException(BindException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, extractValidationMessage(ex.getBindingResult().getFieldError()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleExceptions(Exception ex) {
         log.error("Unhandled exception while processing request", ex);
@@ -122,5 +134,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status)
                 .header(HttpHeaders.SET_COOKIE, clearJwt.toString(), clearRefresh.toString())
                 .body(response);
+    }
+
+    private String extractValidationMessage(org.springframework.validation.FieldError fieldError) {
+        if (fieldError == null || fieldError.getDefaultMessage() == null || fieldError.getDefaultMessage().isBlank()) {
+            return "The request contains invalid recommendation parameters.";
+        }
+        return fieldError.getDefaultMessage();
     }
 }
