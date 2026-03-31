@@ -30,6 +30,23 @@ public interface MovieGenreRepository extends JpaRepository<MovieGenre, MovieGen
             """)
     List<Movie> findDistinctMoviesByGenreNames(@Param("genreNames") Collection<String> genreNames, Pageable pageable);
 
+    @Query("""
+            SELECT DISTINCT mg.movie FROM MovieGenre mg
+            WHERE LOWER(mg.genre.name) IN :genreNames
+              AND mg.movie.movieRating IS NOT NULL
+              AND mg.movie.movieRating >= :minimumRating
+              AND mg.movie.runtime IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(mg.movie.posterPath, ''))) > 0
+              AND mg.movie.releaseDate IS NOT NULL
+              AND LENGTH(TRIM(COALESCE(mg.movie.overview, ''))) > 0
+            ORDER BY mg.movie.popularity DESC, mg.movie.movieRating DESC, mg.movie.cachedAt DESC
+            """)
+    List<Movie> findDistinctRecommendationReadyMoviesByGenreNames(
+            @Param("genreNames") Collection<String> genreNames,
+            @Param("minimumRating") double minimumRating,
+            Pageable pageable
+    );
+
     /**
      * Delete all genre links for a movie.
      * Used when refreshing stale movie data.
