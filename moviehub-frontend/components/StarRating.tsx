@@ -7,13 +7,14 @@ interface Props {
   max?: number;
   onChange?: (rating: number) => void;
   size?: "sm" | "md" | "lg";
+  disabled?: boolean;
 }
 
 const SIZES = { sm: "w-4 h-4", md: "w-5 h-5", lg: "w-6 h-6" };
 
-export default function StarRating({ value, max = 5, onChange, size = "md" }: Props) {
+export default function StarRating({ value, max = 5, onChange, size = "md", disabled = false }: Props) {
   const [hover, setHover] = useState(0);
-  const interactive = !!onChange;
+  const interactive = !!onChange && !disabled;
   const display = hover || value;
 
   return (

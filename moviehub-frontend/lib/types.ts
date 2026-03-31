@@ -79,7 +79,7 @@ export interface AddToWatchlistRequest {
   status?: WatchlistStatus;
 }
 
-export type SoloRecommendationMood =
+export type RecommendationMood =
   | "any"
   | "comforting"
   | "funny"
@@ -96,14 +96,33 @@ export type SoloRecommendationMood =
   | "mind-bending"
   | "inspiring";
 
-export type SoloRuntimePreference = "any" | "short" | "medium" | "long";
+export type RecommendationRuntimePreference = "any" | "short" | "medium" | "long";
 
-export interface SoloRecommendationRequest {
-  moods: SoloRecommendationMood[];
-  runtimePreference: SoloRuntimePreference;
+export interface RecommendationRequest {
+  moods: RecommendationMood[];
+  runtimePreference: RecommendationRuntimePreference;
   limit?: number;
 }
 
+export interface RecommendationResponse {
+  tmdbId: number;
+  movieTitle: string;
+  movieOverview: string;
+  releaseDate: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  rating: number | null;
+  runtime: number | null;
+  popularity: number | null;
+  genres: string[];
+  onWatchlist: boolean;
+  watchlistStatus: WatchlistStatus | null;
+  reasons: string[];
+}
+
+export type SoloRecommendationMood = RecommendationMood;
+export type SoloRuntimePreference = RecommendationRuntimePreference;
+export type SoloRecommendationRequest = RecommendationRequest;
 export interface SoloRecommendationResponse {
   tmdbId: number;
   movieTitle: string;

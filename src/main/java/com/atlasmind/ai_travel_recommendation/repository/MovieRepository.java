@@ -1,6 +1,7 @@
 package com.atlasmind.ai_travel_recommendation.repository;
 
 import com.atlasmind.ai_travel_recommendation.models.Movie;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -57,4 +58,18 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
             WHERE search_vector @@ plainto_tsquery('english', :query)
             """, nativeQuery = true)
     long countByFullText(@Param("query") String query);
+
+    @Query("""
+            SELECT m FROM Movie m
+            WHERE m.popularity IS NOT NULL
+            ORDER BY m.popularity DESC, m.movieRating DESC, m.cachedAt DESC
+            """)
+    List<Movie> findTopPopularMovies(Pageable pageable);
+
+    @Query("""
+            SELECT m FROM Movie m
+            WHERE m.movieRating IS NOT NULL
+            ORDER BY m.movieRating DESC, m.popularity DESC, m.cachedAt DESC
+            """)
+    List<Movie> findTopRatedMovies(Pageable pageable);
 }

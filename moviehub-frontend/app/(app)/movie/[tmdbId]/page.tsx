@@ -109,7 +109,9 @@ export default function MovieDetailPage() {
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [reviewSpoiler, setReviewSpoiler] = useState(false);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"closed" | "composer" | "inline">("closed");
+  const [isRatingsSnapshotExpanded, setIsRatingsSnapshotExpanded] = useState(false);
+  const [ratingError, setRatingError] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [savingRating, setSavingRating] = useState(false);
   const [savingReview, setSavingReview] = useState(false);
@@ -175,9 +177,10 @@ export default function MovieDetailPage() {
     setMovieLoading(true);
     setMovieError(null);
     setReviewsError(null);
+    setRatingError("");
     setReviewError("");
     setShowSpoilers(new Set());
-    setIsEditorOpen(false);
+    setEditorMode("closed");
 
     void getMovieDetails(id)
       .then((data) => {
@@ -213,8 +216,30 @@ export default function MovieDetailPage() {
   }, [movie]);
 
   const hasOwnWrittenReview = Boolean(myReview?.hasReviewText);
+  const isInlineEditingOwnReview = editorMode === "inline" && hasOwnWrittenReview;
   const rows = useMemo(() => distributionRows(reviewSummary), [reviewSummary]);
   const maxBucket = Math.max(...rows.map((row) => row.count), 1);
+
+  const closeEditor = useCallback(() => {
+    setEditorMode("closed");
+    setRatingError("");
+    setReviewError("");
+    syncComposer(myReview);
+  }, [myReview, syncComposer]);
+
+  const openInlineEditor = useCallback(() => {
+    syncComposer(myReview);
+    setRatingError("");
+    setReviewError("");
+    setEditorMode("inline");
+  }, [myReview, syncComposer]);
+
+  const openComposer = useCallback(() => {
+    syncComposer(myReview);
+    setRatingError("");
+    setReviewError("");
+    setEditorMode("composer");
+  }, [myReview, syncComposer]);
 
   const saveReviewRecord = async (
     payload: { rating: number; reviewText?: string; containsSpoilers?: boolean },
@@ -233,19 +258,19 @@ export default function MovieDetailPage() {
     return saved;
   };
 
-  const handleSaveRating = async () => {
-    if (ratingInput === 0) {
-      setReviewError("Select a rating before saving it.");
+  const handleRatingSelection = async (nextRating: number) => {
+    if (nextRating === 0 || savingRating) {
       return;
     }
 
+    setRatingInput(nextRating);
     setSavingRating(true);
-    setReviewError("");
+    setRatingError("");
 
     try {
       await saveReviewRecord(
         {
-          rating: ratingInput,
+          rating: nextRating,
           reviewText: myReview?.reviewText ?? "",
           containsSpoilers: myReview?.hasReviewText ? myReview.containsSpoilers : false,
         },
@@ -261,7 +286,7 @@ export default function MovieDetailPage() {
           ? "Your session is not authenticated for rating changes."
           : getErrorMessage(error, "We couldn't save your rating.");
 
-      setReviewError(message);
+      setRatingError(message);
       setFeedback({ tone: "error", title: "Rating not saved", message });
     } finally {
       setSavingRating(false);
@@ -297,7 +322,7 @@ export default function MovieDetailPage() {
           message: hasOwnWrittenReview ? "Your updated review is now live." : "Your review is now visible on the movie page.",
         }
       );
-      setIsEditorOpen(false);
+      setEditorMode("closed");
     } catch (error) {
       const message =
         error instanceof ApiError && (error.status === 401 || error.status === 403)
@@ -525,7 +550,7 @@ export default function MovieDetailPage() {
                     : "This movie has no written reviews yet. Sign in if you want to leave the first one."
                 }
                 actionLabel={isAuthenticated && !hasOwnWrittenReview ? "Write the first review" : undefined}
-                onAction={isAuthenticated && !hasOwnWrittenReview ? () => setIsEditorOpen(true) : undefined}
+                onAction={isAuthenticated && !hasOwnWrittenReview ? openComposer : undefined}
               />
             ) : (
               <div className="space-y-4">
@@ -557,9 +582,7 @@ export default function MovieDetailPage() {
                             <button
                               type="button"
                               onClick={() => {
-                                syncComposer(myReview);
-                                setReviewError("");
-                                setIsEditorOpen(true);
+                                openInlineEditor();
                               }}
                               className="rounded-full border border-slate-700/35 bg-white/5 p-2 text-slate-300 transition hover:bg-white/8 hover:text-white"
                               aria-label="Edit your review"
@@ -576,7 +599,40 @@ export default function MovieDetailPage() {
                       </div>
 
                       <div className="mt-4">
-                        {spoilerHidden ? (
+                        {isOwnReview && isInlineEditingOwnReview ? (
+                          <form onSubmit={handleSubmitReview} className="space-y-4">
+                            <textarea
+                              value={reviewText}
+                              onChange={(event) => setReviewText(event.target.value)}
+                              rows={5}
+                              placeholder="What worked, what didn't, and would you recommend it?"
+                              className="field-textarea"
+                              autoFocus
+                            />
+                            <label className="flex items-center gap-3 rounded-[1rem] border border-slate-700/35 bg-white/3 px-4 py-3 text-sm text-slate-300">
+                              <input
+                                type="checkbox"
+                                checked={reviewSpoiler}
+                                onChange={(event) => setReviewSpoiler(event.target.checked)}
+                                className="h-4 w-4 rounded border-slate-500 bg-slate-900 text-amber-500 focus:ring-amber-400"
+                              />
+                              Mark this review as containing spoilers
+                            </label>
+                            {reviewError && (
+                              <p className="rounded-[1rem] border border-rose-400/18 bg-rose-500/8 px-4 py-3 text-sm text-rose-200">
+                                {reviewError}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-3">
+                              <button type="submit" disabled={savingReview} className="btn-primary">
+                                {savingReview ? "Saving..." : "Update review"}
+                              </button>
+                              <button type="button" onClick={closeEditor} className="btn-secondary">
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : spoilerHidden ? (
                           <button
                             type="button"
                             onClick={() => toggleSpoiler(review.id)}
@@ -597,36 +653,6 @@ export default function MovieDetailPage() {
         </div>
 
         <aside className="space-y-6">
-          <div className="app-surface app-card p-5 sm:p-6">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Ratings snapshot</h2>
-                <p className="app-copy-muted mt-2 text-sm">A simple 1 to 10 breakdown from AtlasWatch users.</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-semibold text-white">
-                  {reviewSummary?.averageRating != null ? reviewSummary.averageRating.toFixed(1) : "-"}
-                </p>
-                <p className="text-xs text-slate-400">{reviewSummary?.totalRatings ?? 0} ratings</p>
-              </div>
-            </div>
-
-            <div className="mt-5 space-y-2">
-              {rows.map((row) => (
-                <div key={row.rating} className="grid grid-cols-[2.2rem,1fr,2.8rem] items-center gap-3">
-                  <span className="text-sm text-slate-300">{row.rating}</span>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400"
-                      style={{ width: `${(row.count / maxBucket) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-right text-sm text-slate-400">{row.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="app-surface app-card p-5 sm:p-6">
             <h2 className="text-xl font-semibold text-white">Your take</h2>
             <p className="app-copy-muted mt-2 text-sm">
@@ -652,33 +678,47 @@ export default function MovieDetailPage() {
                 <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
                   <p className="text-sm font-semibold text-white">Your rating</p>
                   <p className="mt-1 text-sm text-slate-400">
-                    {myReview ? "Update your score whenever your opinion changes." : "Save a score even if you don't want to write a review."}
+                    {myReview
+                      ? "Your score updates as soon as you tap a different star."
+                      : "Tap a star to save a score even if you do not want to write a review."}
                   </p>
                   <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <StarRating value={ratingInput} max={10} onChange={setRatingInput} size="lg" />
+                    <StarRating
+                      value={ratingInput}
+                      max={10}
+                      onChange={(nextRating) => void handleRatingSelection(nextRating)}
+                      size="lg"
+                      disabled={savingRating}
+                    />
                     <span className="text-sm text-slate-400">
-                      {ratingInput > 0 ? `${ratingInput}/10` : "Tap a star to rate"}
+                      {savingRating
+                        ? "Saving your rating..."
+                        : ratingInput > 0
+                          ? `${ratingInput}/10`
+                          : "Tap a star to rate"}
                     </span>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => void handleSaveRating()} disabled={savingRating} className="btn-primary">
-                      {savingRating ? "Saving..." : myReview ? "Update rating" : "Save rating"}
-                    </button>
-                    {!hasOwnWrittenReview && (
-                      <button type="button" onClick={() => setIsEditorOpen(true)} className="btn-secondary">
+                  {!hasOwnWrittenReview && (
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button type="button" onClick={openComposer} className="btn-secondary">
                         {myReview ? "Add written review" : "Write a review too"}
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {ratingError && (
+                    <p className="mt-4 rounded-[1rem] border border-rose-400/18 bg-rose-500/8 px-4 py-3 text-sm text-rose-200">
+                      {ratingError}
+                    </p>
+                  )}
                 </div>
 
-                {hasOwnWrittenReview && !isEditorOpen ? (
+                {hasOwnWrittenReview && !isInlineEditingOwnReview ? (
                   <div className="rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
                     <p className="text-sm leading-7 text-slate-300">
                       You already have a written review on this movie. Use the edit icon on your review card to update it.
                     </p>
                   </div>
-                ) : isEditorOpen ? (
+                ) : editorMode === "composer" ? (
                   <form onSubmit={handleSubmitReview} className="space-y-4 rounded-[1.2rem] border border-slate-700/35 bg-white/4 p-4">
                     <div>
                       <p className="text-sm font-semibold text-white">{hasOwnWrittenReview ? "Update your review" : "Write your review"}</p>
@@ -711,11 +751,7 @@ export default function MovieDetailPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsEditorOpen(false);
-                          setReviewError("");
-                          syncComposer(myReview);
-                        }}
+                        onClick={closeEditor}
                         className="btn-secondary"
                       >
                         Cancel
@@ -723,6 +759,55 @@ export default function MovieDetailPage() {
                     </div>
                   </form>
                 ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="app-surface app-card p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Ratings snapshot</h2>
+                <p className="app-copy-muted mt-2 text-sm">
+                  A simple 1 to 10 breakdown from AtlasWatch users.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRatingsSnapshotExpanded((current) => !current)}
+                  className="rounded-full border border-slate-700/35 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/8 hover:text-white"
+                >
+                  {isRatingsSnapshotExpanded ? "Hide breakdown" : "Show breakdown"}
+                </button>
+                <div className="text-right">
+                  <p className="text-2xl font-semibold text-white">
+                    {reviewSummary?.averageRating != null ? reviewSummary.averageRating.toFixed(1) : "-"}
+                  </p>
+                  <p className="text-xs text-slate-400">{reviewSummary?.totalRatings ?? 0} ratings</p>
+                </div>
+              </div>
+            </div>
+
+            {isRatingsSnapshotExpanded ? (
+              <div className="mt-5 space-y-2">
+                {rows.map((row) => (
+                  <div key={row.rating} className="grid grid-cols-[2.2rem,1fr,2.8rem] items-center gap-3">
+                    <span className="text-sm text-slate-300">{row.rating}</span>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400"
+                        style={{ width: `${(row.count / maxBucket) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-right text-sm text-slate-400">{row.count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[1rem] border border-slate-700/35 bg-white/4 px-4 py-3">
+                <p className="text-sm text-slate-300">
+                  Expand this card if you want to see the full 1 to 10 rating distribution.
+                </p>
               </div>
             )}
           </div>
