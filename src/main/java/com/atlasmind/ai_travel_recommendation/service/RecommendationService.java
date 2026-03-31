@@ -102,10 +102,8 @@ public class RecommendationService {
         int score = 0;
         List<String> reasons = new ArrayList<>();
 
-        if (entry.getStatus() == WatchListStatus.WATCHING) {
-            score += 16;
-            reasons.add("You already started this, so it is an easy pick to continue.");
-        } else if (entry.getStatus() == WatchListStatus.PLAN_TO_WATCH) {
+        if (entry.getStatus() == WatchListStatus.PLAN_TO_WATCH
+                || entry.getStatus() == WatchListStatus.WATCHING) {
             score += 8;
         }
 

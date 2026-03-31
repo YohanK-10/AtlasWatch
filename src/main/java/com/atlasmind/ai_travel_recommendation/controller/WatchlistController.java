@@ -51,7 +51,7 @@ public class WatchlistController {
     /**
      * PUT /api/watchlist/{id}/status
      * Update the status of a watchlist entry.
-     * Body: { "status": "WATCHING" }
+     * Body: { "status": "PLAN_TO_WATCH" }
      */
     @PutMapping("/{id}/status")
     public ResponseEntity<WatchlistResponseDto> updateStatus(

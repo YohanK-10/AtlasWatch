@@ -400,18 +400,9 @@ export default function PickForMePage() {
                         Added to your watchlist on {formatAddedAt(topPick.addedAt)}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="app-pill border-amber-400/18 bg-amber-400/10 text-amber-100">
-                        Match score {topPick.score}
-                      </span>
-                      <span className="app-pill">
-                        {topPick.watchlistStatus === "PLAN_TO_WATCH"
-                          ? "Plan to watch"
-                          : topPick.watchlistStatus === "WATCHING"
-                            ? "Watching"
-                            : "Watched"}
-                      </span>
-                    </div>
+                    <span className="app-pill">
+                      {topPick.watchlistStatus === "PLAN_TO_WATCH" ? "Plan to watch" : "Watched"}
+                    </span>
                   </div>
 
                   <p className="text-sm leading-7 text-slate-200 sm:text-base">
@@ -493,7 +484,7 @@ export default function PickForMePage() {
                     </button>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
                         <div>
                           <button
                             type="button"
@@ -508,9 +499,6 @@ export default function PickForMePage() {
                             Added {formatAddedAt(pick.addedAt)}
                           </p>
                         </div>
-                        <span className="app-pill border-amber-400/18 bg-amber-400/10 text-amber-100">
-                          Score {pick.score}
-                        </span>
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">

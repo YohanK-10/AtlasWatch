@@ -64,7 +64,7 @@ class WatchlistServiceTest {
         when(watchlistRepository.findByIdWithDetails(77L)).thenReturn(Optional.of(watchList));
 
         assertThrows(AccessDeniedException.class,
-                () -> watchlistService.updateStatus(other, 77L, "WATCHING"));
+                () -> watchlistService.updateStatus(other, 77L, "WATCHED"));
     }
 
     @Test
@@ -80,5 +80,25 @@ class WatchlistServiceTest {
 
         assertEquals("WATCHED", result.getStatus());
         verify(watchlistRepository).save(watchList);
+    }
+
+    @Test
+    void addToWatchlistNormalizesWatchingToPlanToWatch() {
+        User user = TestFixtures.user(1L, "alice", "alice@example.com");
+        Movie movie = TestFixtures.movie(5L, 27205, "Inception");
+        AddToWatchlistDto dto = TestFixtures.addToWatchlistDto(27205, "WATCHING");
+
+        when(movieRepository.findByTmdbId(27205)).thenReturn(Optional.of(movie));
+        when(watchlistRepository.existsByUserIdAndMovieId(1L, 5L)).thenReturn(false);
+        when(watchlistRepository.save(any(WatchList.class))).thenAnswer(invocation -> {
+            WatchList watchList = invocation.getArgument(0);
+            watchList.setId(77L);
+            watchList.setAddedAt(java.time.LocalDateTime.now());
+            return watchList;
+        });
+
+        WatchlistResponseDto result = watchlistService.addToWatchlist(user, dto);
+
+        assertEquals("PLAN_TO_WATCH", result.getStatus());
     }
 }
