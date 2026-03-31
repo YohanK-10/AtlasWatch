@@ -61,8 +61,12 @@ public class WatchlistService {
      */
     @Transactional(readOnly = true)
     public List<WatchlistResponseDto> getWatchlist(User user) {
-        return watchlistRepository.findByUserIdWithDetails(user.getId())
-                .stream()
+        List<WatchList> entries = watchlistRepository.findByUserIdWithDetails(user.getId());
+        entries.stream()
+                .filter(entry -> entry.getStatus() == WatchListStatus.WATCHING)
+                .forEach(entry -> entry.setStatus(WatchListStatus.PLAN_TO_WATCH));
+
+        return entries.stream()
                 .map(WatchlistResponseDto::fromWatchlist)
                 .toList();
     }
@@ -71,12 +75,8 @@ public class WatchlistService {
      * Update the status of a watchlist entry.
      * Only the owner can update their own watchlist entries.
      *
-     * This is the state machine: PLAN_TO_WATCH → WATCHING → WATCHED
-     * We don't enforce strict ordering (user can go directly from
-     * PLAN_TO_WATCH to WATCHED). Why? Because users rewatch movies,
-     * change their minds, etc. Strict ordering would frustrate users
-     * without adding real value. The states are for user organization,
-     * not business process enforcement.
+     * The current product keeps watchlist state simple:
+     * PLAN_TO_WATCH or WATCHED.
      */
     @Transactional
     public WatchlistResponseDto updateStatus(User user, Long watchlistId, String newStatus) {
@@ -124,11 +124,21 @@ public class WatchlistService {
         if (status == null || status.isBlank()) {
             return WatchListStatus.PLAN_TO_WATCH;
         }
+
+        String normalized = status.trim().toUpperCase();
+        if ("WATCHING".equals(normalized)) {
+            return WatchListStatus.PLAN_TO_WATCH;
+        }
+
         try {
-            return WatchListStatus.valueOf(status.toUpperCase());
+            WatchListStatus parsed = WatchListStatus.valueOf(normalized);
+            if (parsed == WatchListStatus.WATCHING) {
+                return WatchListStatus.PLAN_TO_WATCH;
+            }
+            return parsed;
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
-                    "Invalid status: '" + status + "'. Must be PLAN_TO_WATCH, WATCHING, or WATCHED");
+                    "Invalid status: '" + status + "'. Must be PLAN_TO_WATCH or WATCHED");
         }
     }
 }

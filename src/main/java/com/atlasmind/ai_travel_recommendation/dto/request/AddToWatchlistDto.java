@@ -15,5 +15,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AddToWatchlistDto {
     private Integer tmdbId;
-    private String status; // Optional: "PLAN_TO_WATCH", "WATCHING", "WATCHED"
+    private String status; // Optional: "PLAN_TO_WATCH" or "WATCHED"
 }

@@ -1,6 +1,7 @@
 package com.atlasmind.ai_travel_recommendation.dto.response;
 
 import com.atlasmind.ai_travel_recommendation.models.WatchList;
+import com.atlasmind.ai_travel_recommendation.models.WatchListStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,8 +26,12 @@ public class WatchlistResponseDto {
                 .tmdbId(watchlist.getMovie().getTmdbId())
                 .movieTitle(watchlist.getMovie().getMovieTitle())
                 .posterPath(watchlist.getMovie().getPosterPath())
-                .status(watchlist.getStatus().name())
+                .status(normalizeStatus(watchlist.getStatus()).name())
                 .addedAt(watchlist.getAddedAt())
                 .build();
+    }
+
+    private static WatchListStatus normalizeStatus(WatchListStatus status) {
+        return status == WatchListStatus.WATCHING ? WatchListStatus.PLAN_TO_WATCH : status;
     }
 }

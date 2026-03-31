@@ -24,19 +24,16 @@ import {
 const TABS: { label: string; value: WatchlistStatus | "ALL" }[] = [
   { label: "All", value: "ALL" },
   { label: "Plan to watch", value: "PLAN_TO_WATCH" },
-  { label: "Watching", value: "WATCHING" },
   { label: "Watched", value: "WATCHED" },
 ];
 
 const STATUS_OPTIONS: { label: string; value: WatchlistStatus }[] = [
   { label: "Plan to watch", value: "PLAN_TO_WATCH" },
-  { label: "Watching", value: "WATCHING" },
   { label: "Watched", value: "WATCHED" },
 ];
 
 const STATUS_COLORS: Record<WatchlistStatus, string> = {
   PLAN_TO_WATCH: "border-blue-400/18 bg-blue-500/10 text-blue-100",
-  WATCHING: "border-amber-400/18 bg-amber-500/10 text-amber-100",
   WATCHED: "border-emerald-400/18 bg-emerald-500/10 text-emerald-100",
 };
 
@@ -224,7 +221,7 @@ export default function WatchlistPage() {
           <p className="text-xs uppercase tracking-[0.26em] text-amber-300/85">Watchlist</p>
           <h1 className="app-section-title mt-2">Your saved movies</h1>
           <p className="app-copy-muted mt-2 text-sm">
-            Track what you plan to watch, what you are currently watching, and what you have already finished.
+            Keep track of what you plan to watch and what you have already finished.
           </p>
         </div>
 

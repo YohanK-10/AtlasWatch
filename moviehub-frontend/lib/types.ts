@@ -41,7 +41,7 @@ export interface WatchlistResponse {
   addedAt: string;
 }
 
-export type WatchlistStatus = "PLAN_TO_WATCH" | "WATCHING" | "WATCHED";
+export type WatchlistStatus = "PLAN_TO_WATCH" | "WATCHED";
 
 export interface GenreResponse {
   tmdbId: number;
